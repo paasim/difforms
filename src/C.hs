@@ -20,16 +20,20 @@ import Phi
 
 -- A variable x_i in n dimensions where
 -- i < n
-newtype Var n = Var (Fin n) deriving (Eq, Ord)
+-- varExp i means x^(i+1) to disallow zero-powers
+data Var n = Var { varDim :: Fin n, varExp :: Word } deriving (Eq, Ord)
 
 instance Show (Var n) where
-  show (Var n)  = "x_" <> show n
+  show (Var n 0)    = "x_" <> show n
+  show (Var n exp)  = "x_" <> show n <> "^" <> show (exp + 1)
 
 evalVar :: Var n -> R n -> Double
-evalVar (Var ind) r = x r V.! ind
+evalVar (Var ind exp) r = (x r V.! ind) ^ (exp + 1)
 
+-- FIXME
 instance N.SNatI n => Arbitrary (Var n) where
-  arbitrary = fmap Var . elements . V.toList $ V.universe
+  arbitrary = Var <$> (elements . V.toList $ V.universe)
+                  <*> arbitrary
 
 
 -- A product of variables with a coefficient
@@ -39,11 +43,20 @@ liftToTerm :: Double -> Term n
 liftToTerm a = Term a []
 
 -- A 'smart constructor' that removes variables
--- when the coefficient is zero and sorts the variables
+-- when the coefficient is zero, combines variables
+-- with same dimension and sorts the variables
 -- in ascending order for simpler comparison and printing
 mkTerm :: Double -> [Var n] -> Term n
 mkTerm 0 _ = liftToTerm 0
-mkTerm d l = Term d . L.sort $ l
+mkTerm d l = Term d . multiplySimilarTerms . L.sort $ l where
+    -- [x, x, y] -> [x^2, y]
+  multiplySimilarTerms :: [Var n] -> [Var n]
+  multiplySimilarTerms []                                 = []
+  multiplySimilarTerms (t:[])                             = [t]
+  multiplySimilarTerms (Var n1 exp1 : Var n2 exp2 : rest) = if n1 == n2
+    -- +1 is because of the shifted representation for the exponents
+    then multiplySimilarTerms $ Var n1 (exp1+exp2+1) : rest
+    else Var n1 exp1 : multiplySimilarTerms (Var n2 exp2 : rest)
 
 evalTerm :: Term n -> R n -> Double
 evalTerm (Term d [])     _ = d
@@ -128,16 +141,24 @@ instance Semirng (Terms n) where
 instance Semiring (Terms n) where
   sempty = liftToTerms . liftToTerm $ 1
 
+nthPower :: Word -> Terms n -> Terms n
+nthPower 0 _ = sempty
+nthPower n t = sappend t $ nthPower (n-1) t
+
 instance Algebra (Terms n) where
   amult a = sappend (liftToTerms . liftToTerm $ a)
 
 -- not endomap due to term not containing sums
 partialDTerm :: Fin n -> Term n -> Terms n
 partialDTerm _ (Term _ []) = liftToTerms . liftToTerm $ 0
-partialDTerm n (Term d (Var ind : rest)) =
-  let f = liftToTerms $ Term 1 [Var ind]
+partialDTerm n (Term d (Var ind exp : rest)) =
+  let f = liftToTerms $ Term 1 [Var ind exp]
       g = liftToTerms $ Term d rest
-      df = liftToTerms . liftToTerm $ if n == ind then 1 else 0
+      df = case (n == ind, exp == 0) of
+        (False, _)   -> liftToTerms . liftToTerm $ 0
+        (True, True) -> liftToTerms . liftToTerm $ 1
+        -- exp+1 because exp is one lower than the exponent
+        (True, False) -> liftToTerms . Term (fromIntegral exp + 1) $ [Var ind (exp-1)]
       dg = partialDTerm n (Term d rest)
   -- f, g, df are Term, dg is a Terms
   in sappend df g <> sappend f dg
@@ -153,17 +174,18 @@ partialD n (Terms (t1 :| t2:ts)) = partialDTerm n t1 <> partialD n (Terms (t2 :|
 -- this is just a different representation for V.evalV
 tangent :: N.SNatI n => R n -> Terms n -> Terms n
 tangent v ts = foldr (<>) mempty . V.zipWith amult (x v) . fmap (\n -> partialD n ts) $ V.universe
-
+ 
 -- not endomap due to term not containing sums
 pullbackTerm :: N.SNatI m => Phi' n m -> Term m -> Terms n
 pullbackTerm _   (Term d [])             = liftToTerms . liftToTerm $ d
-pullbackTerm phi (Term d (Var ind : ts)) = 
+pullbackTerm phi (Term d (Var ind exp : ts)) = 
   -- given coefficient d' and index i, constructs a term
-  let termWithCoef i d' = liftToTerms $ Term d' [Var i]
+  let termWithCoef i d' = liftToTerms $ Term d' [Var i 0]
   -- construct the sum of terms given a cofficient vector (of type R n)
       sumTerms = V.ifoldr (\i d' -> (<>) (termWithCoef i d')) mempty . x
   -- picks the correct vector from phi and multiplies with the other terms recursively
-  in sappend (sumTerms $ mat (transpose phi) V.! ind) (pullbackTerm phi $ Term d ts)
+  in sappend (nthPower (exp+1) . sumTerms $ mat (transpose phi) V.! ind)
+             (pullbackTerm phi $ Term d ts)
 
 -- precomposes f with the manifold map
 pullback :: N.SNatI m => Phi' n m -> Terms m -> Terms n
