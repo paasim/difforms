@@ -18,10 +18,10 @@ d0 = F.fin0
 d1 = F.fin1
 
 x0 :: Var N.Nat2
-x0 = Var d0
+x0 = Var d0 0
 
 x1 :: Var N.Nat2
-x1 = Var d1
+x1 = Var d1 0
 
 zeroTerm :: Term N.Nat2
 zeroTerm = Term 0 [x1, x1]
