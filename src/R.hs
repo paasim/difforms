@@ -28,9 +28,6 @@ instance Semigroup (R n) where
 instance N.SNatI n => Monoid (R n) where
   mempty = R $ V.repeat 0
 
-instance VectorSpace (R n) where
-  vsmult d (R x) = R $ fmap (d *) x
-
 -- multiplication as the semiring
 instance N.SNatI n => Semirng (R n) where
   sappend (R x) (R x') = R $ V.zipWith (*) x x'

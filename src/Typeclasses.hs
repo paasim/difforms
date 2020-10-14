@@ -2,7 +2,12 @@ module Typeclasses where
 
 -- Definitions of Semirng, Semiring and Algebra
 
-class Semigroup g => VectorSpace g where
+-- vsadd is basically the same as mappend/sappend
+-- but different axioms
+class Vectorspace g where
+  vsempty :: g
+  vsinv :: g -> g
+  vsadd :: g -> g -> g
   vsmult :: Double -> g -> g
 
 -- The monoid is assumed to commute,

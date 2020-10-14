@@ -16,14 +16,14 @@ type FourR n = R n -> ThreeR n
 semigroupSymmetric :: TwoR n
 semigroupSymmetric r1 r2 = (r1 <> r2) == (r2 <> r1)
 
-semigroupCommutes :: ThreeR n
-semigroupCommutes r1 r2 r3 = ((r1 <> r2) <> r3) == (r1 <> (r2 <> r3))
+semigroupAssociates :: ThreeR n
+semigroupAssociates r1 r2 r3 = ((r1 <> r2) <> r3) == (r1 <> (r2 <> r3))
 
 monoidLeftId :: N.SNatI n => OneR n
 monoidLeftId r = (mempty <> r) == r
 
-semirngCommutes :: N.SNatI n => ThreeR n
-semirngCommutes r1 r2 r3 = ((r1 `sappend` r2) `sappend` r3)
+semirngAssociates :: N.SNatI n => ThreeR n
+semirngAssociates r1 r2 r3 = ((r1 `sappend` r2) `sappend` r3)
   == (r1 `sappend` (r2 `sappend` r3))
 
 semirngLeftId :: N.SNatI n => OneR n
@@ -62,10 +62,10 @@ colAppendProdWithCoordVec r m = matVecProduct (appendCol r m) (coordVec F.fin0) 
 main :: IO ()
 main = do
   quickCheck (semigroupSymmetric  :: TwoR N.Nat3)
-  quickCheck (semigroupCommutes   :: ThreeR N.Nat3)
+  quickCheck (semigroupAssociates :: ThreeR N.Nat3)
   -- no need to test for right identity because the monoid is symmetric
   quickCheck (monoidLeftId        :: OneR N.Nat3)
-  quickCheck (semirngCommutes     :: ThreeR N.Nat3)
+  quickCheck (semirngAssociates   :: ThreeR N.Nat3)
   quickCheck (semirngLeftId       :: OneR N.Nat3)
   quickCheck (semirngRightId      :: OneR N.Nat3)
   quickCheck (semiringDistributes :: FourR N.Nat3)

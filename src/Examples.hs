@@ -16,23 +16,34 @@ import C
 
 d0 = F.fin0
 d1 = F.fin1
+d2 = F.fin2
 
-x0 :: Var N.Nat2
-x0 = Var d0 0
+x0 :: Var N.Nat3
+x0 = Var d0 2
 
-x1 :: Var N.Nat2
-x1 = Var d1 0
+x1 :: Var N.Nat3
+x1 = Var d1 2
 
-zeroTerm :: Term N.Nat2
+x2 :: Var N.Nat3
+x2 = Var d2 13
+
+zeroTerm :: Term N.Nat3
 zeroTerm = Term 0 [x1, x1]
 
-term1 :: Term N.Nat2
+term1 :: Term N.Nat3
 term1 = mkTerm 2 [x1, x0, x0, x0]
 
-term2 :: Term N.Nat2
+term2 :: Term N.Nat3
 term2 = mkTerm (-3) [x1, x1]
 
-terms1 :: Terms N.Nat2
+terms1 :: Terms N.Nat3
 terms1 = mkTerms term2 [zeroTerm, term1, term2]
 
+term21 = mkTerm (-3) [x0, x1, x2]
+
+var20 = Var d0 9
+var21 = Var d1 2
+var22 = Var d2 5
+
+term22 = mkTerm 1 [var20, var21, var22]
 

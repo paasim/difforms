@@ -15,18 +15,17 @@ import C
 
 newtype V n = V { vCoeff :: R n }
 
+instance Show (V n) where
+  show (V rn) = "V: " <> show rn
+
 instance N.SNatI n => Arbitrary (V n) where
   arbitrary = V <$> arbitrary
 
--- this should be really defined as
--- (v1+v2)(f) = v1(f) + v2(f)
--- but because V is represented by
--- vectors, this works
-instance Semigroup (V n) where
-  (V rn) <> (V rn') = V $ rn <> rn'
-
-instance VectorSpace (V n) where
-  vsmult d (V rn) = V $ vsmult d rn
+instance N.SNatI n => Vectorspace (V n) where
+  vsempty = V $ mempty
+  vsinv v = vsmult (-1) v
+  vsadd (V rn1) (V rn2) = V $ rn1 <> rn2
+  vsmult d v = V . R . fmap (* d) . x . vCoeff $ v
 
 -- this is just a different representation for C.tangent
 evalV :: N.SNatI n => V n -> C' n -> C' n

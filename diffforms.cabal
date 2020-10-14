@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 885ac980f8cedae9bd0cc2f64c0efe37ef3554b772c457714d6b8e1f1d70a2b7
+-- hash: f4cff7802b637a98a59c07a4cfc9d6399511289237cf9b0cf32b6a3dbd45a47f
 
 name:           diffforms
 version:        0.1.0.0
@@ -65,7 +65,9 @@ test-suite diffforms-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      TestC
       TestR
+      TestV
       Paths_diffforms
   hs-source-dirs:
       test
