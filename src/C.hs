@@ -14,7 +14,7 @@ import qualified Data.List as L
 import Data.Function ( on )
 import Data.Maybe ( fromMaybe )
 import Test.QuickCheck
-import Algebra
+import Typeclasses
 import R
 import Phi
 
@@ -69,7 +69,7 @@ instance Show (Term n) where
 instance Eq (Term n) where
   (Term 0 _) == (Term 0 _) = True
   (Term d l) == (Term d' l') = d == d' && ((==) `on` L.sort) l l'
-  
+
 instance Ord (Term n) where
   (Term 0 _) <= (Term 0 []) = True
   (Term 0 []) <= (Term 0 _) = True
@@ -77,10 +77,10 @@ instance Ord (Term n) where
     (EQ, dComp) -> dComp
     (LT, _)     -> True
     (GT, _)     -> False
-  
+
 instance N.SNatI n => Arbitrary (Term n) where
   arbitrary = mkTerm <$> fmap fromInteger arbitrary <*> listOf arbitrary
-  
+
 -- the monoid action on term(s) is multiplication, not sum
 instance Semigroup (Term n) where
   (Term 0 _) <> (Term _ _)   = liftToTerm 0 
@@ -123,12 +123,12 @@ instance Show (Terms n) where
 
 instance N.SNatI n => Arbitrary (Terms n) where
   arbitrary = mkTerms <$> arbitrary <*> listOf arbitrary
-  
+
 -- the monoid action is now sum, not product as with term
 -- (this is because terms needs to be a semiring)
 instance Semigroup (Terms n) where
   (Terms ts1) <> (Terms ts2) = let (t :| ts) = ts1 <> ts2 in mkTerms t ts
-  
+
 instance Monoid (Terms n) where
   mempty = liftToTerms . liftToTerm $ 0 
 
@@ -174,11 +174,11 @@ partialD n (Terms (t1 :| t2:ts)) = partialDTerm n t1 <> partialD n (Terms (t2 :|
 -- this is just a different representation for V.evalV
 tangent :: N.SNatI n => R n -> Terms n -> Terms n
 tangent v ts = foldr (<>) mempty . V.zipWith amult (x v) . fmap (\n -> partialD n ts) $ V.universe
- 
+
 -- not endomap due to term not containing sums
 pullbackTerm :: N.SNatI m => Phi' n m -> Term m -> Terms n
 pullbackTerm _   (Term d [])             = liftToTerms . liftToTerm $ d
-pullbackTerm phi (Term d (Var ind exp : ts)) = 
+pullbackTerm phi (Term d (Var ind exp : ts)) =
   -- given coefficient d' and index i, constructs a term
   let termWithCoef i d' = liftToTerms $ Term d' [Var i 0]
   -- construct the sum of terms given a cofficient vector (of type R n)

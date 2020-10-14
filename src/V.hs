@@ -8,7 +8,7 @@ import qualified Data.Vec.Lazy as V
 import Data.Type.Nat ( Nat(..) )
 import qualified Data.Type.Nat as N
 import Test.QuickCheck
-import Algebra
+import Typeclasses
 import R
 import Phi
 import C
@@ -17,6 +17,16 @@ newtype V n = V { vCoeff :: R n }
 
 instance N.SNatI n => Arbitrary (V n) where
   arbitrary = V <$> arbitrary
+
+-- this should be really defined as
+-- (v1+v2)(f) = v1(f) + v2(f)
+-- but because V is represented by
+-- vectors, this works
+instance Semigroup (V n) where
+  (V rn) <> (V rn') = V $ rn <> rn'
+
+instance VectorSpace (V n) where
+  vsmult d (V rn) = V $ vsmult d rn
 
 -- this is just a different representation for C.tangent
 evalV :: N.SNatI n => V n -> C' n -> C' n
