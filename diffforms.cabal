@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 77df484bd924f25b203026942fb099070d7c62b25fd4107564a25c166fa9bf68
+-- hash: 885ac980f8cedae9bd0cc2f64c0efe37ef3554b772c457714d6b8e1f1d70a2b7
 
 name:           diffforms
 version:        0.1.0.0
@@ -27,11 +27,11 @@ source-repository head
 
 library
   exposed-modules:
-      Algebra
       C
       Examples
       Phi
       R
+      Typeclasses
       V
   other-modules:
       Paths_diffforms
@@ -65,6 +65,7 @@ test-suite diffforms-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      TestR
       Paths_diffforms
   hs-source-dirs:
       test
