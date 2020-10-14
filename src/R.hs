@@ -49,7 +49,7 @@ coordVec :: N.SNatI n => Fin n -> R n
 coordVec n = R . V.imap (\i _ -> if i == n then 1 else 0) $ V.universe
 
 -- Mat n m, Matrices as lists of m-dimensional real numbers
-newtype Mat n m = Mat { mat :: Vec n (R m) }
+newtype Mat n m = Mat { mat :: Vec n (R m) } deriving (Eq, Ord)
 
 printRows :: Vec m (R n) -> String
 printRows VNil                 = ""
