@@ -9,6 +9,7 @@ import Typeclasses
 import R
 import C
 import V
+import TestHelpers
 
 -- Nothing to test with variables
 
@@ -45,12 +46,14 @@ vsmultDistributes i1 i2 v1 v2 ts = let d1 = fromIntegral i1
 
 main :: IO ()
 main = do
-  quickCheck (vsAssociates      :: ThreeV N.Nat3)
-  quickCheck (vsCommutes        :: TwoV N.Nat3)
-  quickCheck (vsInv             :: OneV N.Nat3)
-  quickCheck (vsmultAssociates  :: Int -> Int -> OneV N.Nat3)
-  quickCheck (vsmultLeftId      :: OneV N.Nat3)
-  quickCheck (vsmultDistributes :: Int -> Int -> TwoV N.Nat3)
+  qc "vector space associative" (vsAssociates :: ThreeV N.Nat3)
+  qc "vector space commutative" (vsCommutes :: TwoV N.Nat3)
+  qc "vector space invertible" (vsInv :: OneV N.Nat3)
+  qc "vector space multiplication associative"
+    (vsmultAssociates :: Int -> Int -> OneV N.Nat3)
+  qc "vector space 1 multiplicative left identity" (vsmultLeftId :: OneV N.Nat3)
+  qc "vector space multiplication distributive"
+    (vsmultDistributes :: Int -> Int -> TwoV N.Nat3)
 
 
 -- rename for exporting

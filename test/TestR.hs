@@ -6,6 +6,7 @@ import qualified Data.Fin as F
 import Test.QuickCheck
 import Typeclasses
 import R
+import TestHelpers
 
 -- Vectors
 type OneR n = R n -> Bool
@@ -61,20 +62,24 @@ colAppendProdWithCoordVec r m = matVecProduct (appendCol r m) (coordVec F.fin0) 
 
 main :: IO ()
 main = do
-  quickCheck (semigroupSymmetric  :: TwoR N.Nat3)
-  quickCheck (semigroupAssociates :: ThreeR N.Nat3)
+  putStrLn "Tests for R:"
+  qc "semigroup symmetric" (semigroupSymmetric :: TwoR N.Nat3)
+  qc "semigroup associative" (semigroupAssociates :: ThreeR N.Nat3)
   -- no need to test for right identity because the monoid is symmetric
-  quickCheck (monoidLeftId        :: OneR N.Nat3)
-  quickCheck (semirngAssociates   :: ThreeR N.Nat3)
-  quickCheck (semirngLeftId       :: OneR N.Nat3)
-  quickCheck (semirngRightId      :: OneR N.Nat3)
-  quickCheck (semiringDistributes :: FourR N.Nat3)
-  quickCheck (semiringLeftAnnih   :: OneR N.Nat3)
-  quickCheck (semiringRightAnnih  :: OneR N.Nat3)
+  qc "monoid left identity" (monoidLeftId :: OneR N.Nat3)
+  qc "semirng associative" (semirngAssociates :: ThreeR N.Nat3)
+  qc "semirn left identity" (semirngLeftId :: OneR N.Nat3)
+  qc "semirn right identity" (semirngRightId :: OneR N.Nat3)
+  qc "semiring distributive" (semiringDistributes :: FourR N.Nat3)
+  qc "semiring 0 left annihilator" (semiringLeftAnnih :: OneR N.Nat3)
+  qc "semiring 0 right annihilator" (semiringRightAnnih :: OneR N.Nat3)
 
-  quickCheck (transpIdenpotent :: OneMat N.Nat5 N.Nat3)
-  quickCheck (rowAppendProdWithCoordVec :: RMat N.Nat5 N.Nat3)
-  quickCheck (colAppendProdWithCoordVec :: MatR N.Nat5 N.Nat3)
+  putStrLn "Tests for Mat:"
+  qc "transpose is idenpotent" (transpIdenpotent :: OneMat N.Nat5 N.Nat3)
+  qc "appending a row and extracting it is identity"
+    (rowAppendProdWithCoordVec :: RMat N.Nat5 N.Nat3)
+  qc "appending a col and extracting it is identity"
+    (colAppendProdWithCoordVec :: MatR N.Nat5 N.Nat3)
 
 
 -- rename for exporting

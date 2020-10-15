@@ -8,6 +8,7 @@ import Test.QuickCheck
 import Typeclasses
 import R
 import C
+import TestHelpers
 
 -- Nothing to test with variables
 
@@ -90,22 +91,33 @@ amultDistributes2 i1 i2 ts = let d1 = fromIntegral i1
 
 main :: IO ()
 main = do
-  quickCheck (evalLiftedTerm :: Double -> R N.Nat3 -> Bool)
-  quickCheck (semigroupSymmetricTerm  :: TwoTerm N.Nat3)
-  quickCheck (semigroupAssociatesTerm :: ThreeTerm N.Nat3)
+  putStrLn "Tests for Term:"
+  qc "evaluating lifted double is identity"
+    (evalLiftedTerm :: Double -> R N.Nat3 -> Bool)
+  qc "semigroup symmetric" (semigroupSymmetricTerm :: TwoTerm N.Nat3)
+  qc "semigroup associative"  (semigroupAssociatesTerm :: ThreeTerm N.Nat3)
   -- no need to test for right identity because the monoid is symmetric
-  quickCheck (monoidLeftIdTerm        :: OneTerm N.Nat3)
+  qc "monoid left identity" (monoidLeftIdTerm :: OneTerm N.Nat3)
 
-  quickCheck (evalLiftedTerms :: R N.Nat3 -> Term N.Nat3 -> Bool)
-  quickCheck (semirngAssociates   :: ThreeTerms N.Nat3)
-  quickCheck (semirngLeftId       :: OneTerms N.Nat3)
-  quickCheck (semirngRightId      :: OneTerms N.Nat3)
-  quickCheck (semiringDistributes :: FourTerms N.Nat3)
-  quickCheck (semiringLeftAnnih   :: OneTerms N.Nat3)
-  quickCheck (semiringRightAnnih  :: OneTerms N.Nat3)
-  quickCheck (amultAssociates     :: Int -> Int -> OneTerms N.Nat3)
-  quickCheck (amultDistributes1   :: Int -> TwoTerms N.Nat3)
-  quickCheck (amultDistributes2   :: Int -> Int -> OneTerms N.Nat3)
+  putStrLn "Tests for Terms:"
+  qc "evaluating lifted term is the same as evaluating the term"
+    (evalLiftedTerms :: R N.Nat3 -> Term N.Nat3 -> Bool)
+  qc "semigroup symmetric" (semigroupSymmetric :: TwoTerms N.Nat3)
+  qc "semigroup associative"  (semigroupAssociates :: ThreeTerms N.Nat3)
+  -- no need to test for right identity because the monoid is symmetric
+  qc "monoid left identity" (monoidLeftId :: OneTerms N.Nat3)
+  qc "semirng associative" (semirngAssociates :: ThreeTerms N.Nat3)
+  qc "semirng left id" (semirngLeftId :: OneTerms N.Nat3)
+  qc "semirng right id" (semirngRightId :: OneTerms N.Nat3)
+  qc "semiring distributive" (semiringDistributes :: FourTerms N.Nat3)
+  qc "semiring 0 left annihilator" (semiringLeftAnnih :: OneTerms N.Nat3)
+  qc "semiring 0 right annihilator" (semiringRightAnnih :: OneTerms N.Nat3)
+  qc "algebra multiplication associative"
+    (amultAssociates :: Int -> Int -> OneTerms N.Nat3)
+  qc "algebra multiplication distributive in double"
+    (amultDistributes1 :: Int -> TwoTerms N.Nat3)
+  qc "algebra multiplication distributive in terms"
+    (amultDistributes2 :: Int -> Int -> OneTerms N.Nat3)
 
 
 -- rename for exporting
