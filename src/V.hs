@@ -22,10 +22,10 @@ instance N.SNatI n => Arbitrary (V n) where
   arbitrary = V <$> arbitrary
 
 instance N.SNatI n => Vectorspace (V n) where
-  vsempty = V $ mempty
-  vsinv v = vsmult (-1) v
+  vsempty = V mempty
+  vsinv = vsmult (-1)
   vsadd (V rn1) (V rn2) = V $ rn1 <> rn2
-  vsmult d v = V . R . fmap (* d) . x . vCoeff $ v
+  vsmult d = V . R . fmap (* d) . x . vCoeff
 
 -- this is just a different representation for C.tangent
 evalV :: N.SNatI n => V n -> C' n -> C' n
