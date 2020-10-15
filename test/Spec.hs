@@ -1,2 +1,12 @@
+module Main where
+
+import TestR
+import TestC
+import TestV
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = do
+  mainR
+  mainC
+  mainV
+

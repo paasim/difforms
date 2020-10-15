@@ -28,7 +28,7 @@ phi0' theta = Mat $ R (cos theta ::: (-1) * sin theta ::: VNil)
 --instance Show (Phi n m) where
 --  show _ = "Phi"
 
---phiId :: Phi n n 
+--phiId :: Phi n n
 --phiId = Phi id
 
 -- rotation by theta

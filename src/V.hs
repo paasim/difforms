@@ -8,15 +8,24 @@ import qualified Data.Vec.Lazy as V
 import Data.Type.Nat ( Nat(..) )
 import qualified Data.Type.Nat as N
 import Test.QuickCheck
-import Algebra
+import Typeclasses
 import R
 import Phi
 import C
 
 newtype V n = V { vCoeff :: R n }
 
+instance Show (V n) where
+  show (V rn) = "V: " <> show rn
+
 instance N.SNatI n => Arbitrary (V n) where
   arbitrary = V <$> arbitrary
+
+instance N.SNatI n => Vectorspace (V n) where
+  vsempty = V $ mempty
+  vsinv v = vsmult (-1) v
+  vsadd (V rn1) (V rn2) = V $ rn1 <> rn2
+  vsmult d v = V . R . fmap (* d) . x . vCoeff $ v
 
 -- this is just a different representation for C.tangent
 evalV :: N.SNatI n => V n -> C' n -> C' n

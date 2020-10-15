@@ -14,7 +14,7 @@ import qualified Data.List as L
 import Data.Function ( on )
 import Data.Maybe ( fromMaybe )
 import Test.QuickCheck
-import Algebra
+import Typeclasses
 import R
 import Phi
 
@@ -30,14 +30,13 @@ instance Show (Var n) where
 evalVar :: Var n -> R n -> Double
 evalVar (Var ind exp) r = (x r V.! ind) ^ (exp + 1)
 
--- FIXME
 instance N.SNatI n => Arbitrary (Var n) where
   arbitrary = Var <$> (elements . V.toList $ V.universe)
-                  <*> arbitrary
+                  <*> elements [0..10]
 
 
 -- A product of variables with a coefficient
-data Term n = Term Double [Var n]
+data Term n = Term { termCoeff :: Double, termVars :: [Var n] }
 
 liftToTerm :: Double -> Term n
 liftToTerm a = Term a []
@@ -69,7 +68,7 @@ instance Show (Term n) where
 instance Eq (Term n) where
   (Term 0 _) == (Term 0 _) = True
   (Term d l) == (Term d' l') = d == d' && ((==) `on` L.sort) l l'
-  
+
 instance Ord (Term n) where
   (Term 0 _) <= (Term 0 []) = True
   (Term 0 []) <= (Term 0 _) = True
@@ -77,13 +76,14 @@ instance Ord (Term n) where
     (EQ, dComp) -> dComp
     (LT, _)     -> True
     (GT, _)     -> False
-  
+
 instance N.SNatI n => Arbitrary (Term n) where
+  -- in order to prevent oveflow when evaluating terms
   arbitrary = mkTerm <$> fmap fromInteger arbitrary <*> listOf arbitrary
-  
+
 -- the monoid action on term(s) is multiplication, not sum
 instance Semigroup (Term n) where
-  (Term 0 _) <> (Term _ _)   = liftToTerm 0 
+  (Term 0 _) <> (Term _ _)   = liftToTerm 0
   (Term _ _) <> (Term 0 _)   = liftToTerm 0
   (Term d l) <> (Term d' l') = mkTerm (d*d') $ l <> l'
 
@@ -101,7 +101,7 @@ liftToTerms t1 = Terms $ t1 :| []
 -- are in correct order, terms with common variable-part are
 -- summed together and and terms with coefficient 0 are filtered out
 mkTerms :: Term n -> [Term n] -> Terms n
-mkTerms t ts = Terms . sumSimilarTerms . NE.sort . filterZeros $ t : ts where
+mkTerms t ts = Terms . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
   -- [2xy^2, -5xy^2, 3x] -> [-3xy^2, 3x]
   sumSimilarTerms :: NonEmpty (Term n) -> NonEmpty (Term n)
   sumSimilarTerms (t :| [])       = t :| []
@@ -110,8 +110,8 @@ mkTerms t ts = Terms . sumSimilarTerms . NE.sort . filterZeros $ t : ts where
     else Term d l <| sumSimilarTerms (Term d' l' :| ts)
   -- remove all terms with 0 as coefficient but
   -- if the result is an empty list, keep one
-  filterZeros :: [Term n] -> NonEmpty (Term n)
-  filterZeros = fromMaybe (liftToTerm 0 :| []) . NE.nonEmpty . filter (liftToTerm 0 /=)
+  filterZeros :: NonEmpty (Term n) -> NonEmpty (Term n)
+  filterZeros = fromMaybe (liftToTerm 0 :| []) . NE.nonEmpty . NE.filter (liftToTerm 0 /=)
 
 evalTerms :: Terms n -> R n -> Double
 evalTerms (Terms (t1 :| []))    r = evalTerm t1 r
@@ -122,15 +122,16 @@ instance Show (Terms n) where
   show (Terms (t :| rest)) = show t <> " + " <> (L.intercalate " + " . fmap show $ rest)
 
 instance N.SNatI n => Arbitrary (Terms n) where
+  -- in order to prevent oveflow when evaluating terms
   arbitrary = mkTerms <$> arbitrary <*> listOf arbitrary
-  
+
 -- the monoid action is now sum, not product as with term
 -- (this is because terms needs to be a semiring)
 instance Semigroup (Terms n) where
   (Terms ts1) <> (Terms ts2) = let (t :| ts) = ts1 <> ts2 in mkTerms t ts
-  
+
 instance Monoid (Terms n) where
-  mempty = liftToTerms . liftToTerm $ 0 
+  mempty = liftToTerms . liftToTerm $ 0
 
 -- this is the multiplication, kind of confusingly corresponding
 -- to monoid action of term
@@ -174,11 +175,11 @@ partialD n (Terms (t1 :| t2:ts)) = partialDTerm n t1 <> partialD n (Terms (t2 :|
 -- this is just a different representation for V.evalV
 tangent :: N.SNatI n => R n -> Terms n -> Terms n
 tangent v ts = foldr (<>) mempty . V.zipWith amult (x v) . fmap (\n -> partialD n ts) $ V.universe
- 
+
 -- not endomap due to term not containing sums
 pullbackTerm :: N.SNatI m => Phi' n m -> Term m -> Terms n
 pullbackTerm _   (Term d [])             = liftToTerms . liftToTerm $ d
-pullbackTerm phi (Term d (Var ind exp : ts)) = 
+pullbackTerm phi (Term d (Var ind exp : ts)) =
   -- given coefficient d' and index i, constructs a term
   let termWithCoef i d' = liftToTerms $ Term d' [Var i 0]
   -- construct the sum of terms given a cofficient vector (of type R n)

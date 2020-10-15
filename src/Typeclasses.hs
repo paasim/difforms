@@ -1,15 +1,22 @@
-module Algebra where
+module Typeclasses where
 
 -- Definitions of Semirng, Semiring and Algebra
 
+-- vsadd is basically the same as mappend/sappend
+-- but different axioms
+class Vectorspace g where
+  vsempty :: g
+  vsinv :: g -> g
+  vsadd :: g -> g -> g
+  vsmult :: Double -> g -> g
 
 -- The monoid is assumed to commute,
--- ie. (a <> b) <> c = a <> (b <> c) 
+-- ie. (a <> b) <> c = a <> (b <> c)
 -- The multiplication (semirng-action) should distribute over addition,
 -- ie (a <> b) `sappend` c = (a `sappend` c) <> (b `sappend` c)
 class Monoid g => Semirng g where
   sappend :: g -> g -> g
-  
+
 -- semirng = semiring without multiplicative _i_dentity
 class Semirng g => Semiring g where
   sempty :: g
