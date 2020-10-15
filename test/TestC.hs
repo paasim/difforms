@@ -44,7 +44,7 @@ evalLiftedTerms r t = evalTerms (liftToTerms t) r == evalTerm t r
 
 mkTermsIsIdempotent :: Term n -> [Term n] -> Bool
 mkTermsIsIdempotent t ts = let (Terms (t1 :| ts1)) = mkTerms t ts
-                            in (Terms $ t1 :| ts1) == mkTerms t1 ts1
+                            in Terms (t1 :| ts1) == mkTerms t1 ts1
 
 semigroupSymmetric :: TwoTerms n
 semigroupSymmetric r1 r2 = (r1 <> r2) == (r2 <> r1)
@@ -82,12 +82,12 @@ amultAssociates i1 i2 ts = let d1 = fromIntegral i1
 
 amultDistributes1 :: Int -> TwoTerms n
 amultDistributes1 i ts1 ts2 = let d = fromIntegral i
-  in amult d (ts1 <> ts2) == (amult d ts1) <> (amult d ts2)
+  in amult d (ts1 <> ts2) == amult d ts1 <> amult d ts2
 
 amultDistributes2 :: Int -> Int -> OneTerms n
 amultDistributes2 i1 i2 ts = let d1 = fromIntegral i1
                                  d2 = fromIntegral i2
-  in amult (d1 + d2) ts == (amult d1 ts) <> (amult d2 ts)
+  in amult (d1 + d2) ts == amult d1 ts <> amult d2 ts
 
 main :: IO ()
 main = do

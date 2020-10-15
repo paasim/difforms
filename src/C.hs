@@ -51,7 +51,7 @@ mkTerm d l = Term d . multiplySimilarTerms . L.sort $ l where
     -- [x, x, y] -> [x^2, y]
   multiplySimilarTerms :: [Var n] -> [Var n]
   multiplySimilarTerms []                                 = []
-  multiplySimilarTerms (t:[])                             = [t]
+  multiplySimilarTerms [t]                                = [t]
   multiplySimilarTerms (Var n1 exp1 : Var n2 exp2 : rest) = if n1 == n2
     -- +1 is because of the shifted representation for the exponents
     then multiplySimilarTerms $ Var n1 (exp1+exp2+1) : rest

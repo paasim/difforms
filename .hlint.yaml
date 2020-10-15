@@ -9,6 +9,7 @@
 # Warnings currently triggered by your code
 - ignore: {name: "Use mconcat"}
 - ignore: {name: "Avoid lambda using `infix`"}
+- ignore: {name: "Monoid law, left identity"}
 
 
 # Specify additional command line arguments
