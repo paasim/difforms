@@ -16,7 +16,6 @@ import Data.Maybe ( fromMaybe )
 import Test.QuickCheck
 import Typeclasses
 import R
-import Phi
 
 -- A variable x_i in n dimensions where
 -- i < n
@@ -115,7 +114,7 @@ mkTerms t ts = Terms . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
 
 evalTerms :: Terms n -> R n -> Double
 evalTerms (Terms (t1 :| []))    r = evalTerm t1 r
-evalTerms (Terms (t1 :| t2:ts)) r = evalTerm t1 r * evalTerms (Terms $ t2 :| ts) r
+evalTerms (Terms (t1 :| t2:ts)) r = evalTerm t1 r + evalTerms (Terms $ t2 :| ts) r
 
 instance Show (Terms n) where
   show (Terms (t :| []))   = show t
@@ -175,23 +174,6 @@ partialD n (Terms (t1 :| t2:ts)) = partialDTerm n t1 <> partialD n (Terms (t2 :|
 -- this is just a different representation for V.evalV
 tangent :: N.SNatI n => R n -> Terms n -> Terms n
 tangent v ts = foldr (<>) mempty . V.zipWith amult (x v) . fmap (\n -> partialD n ts) $ V.universe
-
--- not endomap due to term not containing sums
-pullbackTerm :: N.SNatI m => Phi' n m -> Term m -> Terms n
-pullbackTerm _   (Term d [])             = liftToTerms . liftToTerm $ d
-pullbackTerm phi (Term d (Var ind exp : ts)) =
-  -- given coefficient d' and index i, constructs a term
-  let termWithCoef i d' = liftToTerms $ Term d' [Var i 0]
-  -- construct the sum of terms given a cofficient vector (of type R n)
-      sumTerms = V.ifoldr (\i d' -> (<>) (termWithCoef i d')) mempty . x
-  -- picks the correct vector from phi and multiplies with the other terms recursively
-  in sappend (nthPower (exp+1) . sumTerms $ mat (transpose phi) V.! ind)
-             (pullbackTerm phi $ Term d ts)
-
--- precomposes f with the manifold map
-pullback :: N.SNatI m => Phi' n m -> Terms m -> Terms n
-pullback phi (Terms (t1 :| []))    = pullbackTerm phi t1
-pullback phi (Terms (t1 :| t2:ts)) = pullbackTerm phi t1 <> pullback phi (Terms (t2 :| ts))
 
 -- C n, the set of continuous functions is approximated by polynomials
 type C' n = Terms n
