@@ -12,11 +12,11 @@ import Test.QuickCheck
 import Typeclasses
 
 -- R n, n-dimensional real numbers
-newtype R n = R { x :: Vec n Double } deriving (Eq, Ord)
+newtype R n = R { x :: Vec n Rational } deriving (Eq, Ord)
 
 instance Show (R n) where
   show (R x) = "(" <> show' x <> ")" where
-    show' :: Vec n Double -> String
+    show' :: Vec n Rational -> String
     show' VNil         = ""
     show' (xn ::: VNil) = show xn
     show' (xi ::: rest) = show xi <> ", " <> show' rest
@@ -35,12 +35,12 @@ instance N.SNatI n => Semirng (R n) where
 instance N.SNatI n => Semiring (R n) where
   sempty = R $ V.repeat 1
 
-dotProduct :: N.SNatI n => R n -> R n -> Double
+dotProduct :: N.SNatI n => R n -> R n -> Rational
 dotProduct pt = sum . x . sappend pt
 
 -- sample just integers for simplicity
 instance N.SNatI n => Arbitrary (R n) where
-  arbitrary = R . fmap fromInteger <$> arbitrary
+  arbitrary = R <$> arbitrary
 
 coordVec :: N.SNatI n => Fin n -> R n
 coordVec n = R . V.imap (\i _ -> if i == n then 1 else 0) $ V.universe

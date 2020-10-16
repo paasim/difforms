@@ -15,7 +15,7 @@ import C
 import V
 
 -- Linear maps (instead of any diffeomorphism)
-type Phi' n m = Mat n m --Phi' { matPhi :: Vec m (Vec n Double) }
+type Phi' n m = Mat n m --Phi' { matPhi :: Vec m (Vec n Rational) }
 
 -- not endomap due to term not containing sums
 pullbackTerm :: N.SNatI m => Phi' n m -> Term m -> Terms n
@@ -37,41 +37,4 @@ pullback phi (Terms (t1 :| t2:ts)) = pullbackTerm phi t1 <> pullback phi (Terms 
 
 pushforward :: (N.SNatI n, N.SNatI m) => Phi' n m -> V n -> V m
 pushforward m v = V $ vecMatProduct (vCoeff v) m
-
-phiId' :: N.SNatI n => Phi' n n
-phiId' = diagMat
-
--- rotation by theta
-phi0' :: Double -> Phi' N.Nat2 N.Nat2
-phi0' theta = Mat $ R (cos theta ::: (-1) * sin theta ::: VNil)
-                ::: R (sin theta ::: cos theta ::: VNil)
-                ::: VNil
-
--- This is what I would like to get
---newtype Phi n m = Phi { runPhi :: R n -> R m }
-
---instance Show (Phi n m) where
---  show _ = "Phi"
-
---phiId :: Phi n n
---phiId = Phi id
-
--- rotation by theta
---phi0 :: Double -> Phi N.Nat2 N.Nat2
---phi0 theta = Phi $ R . f . x where
---  f (x ::: y ::: VNil) = x * cos theta + y * sin theta
---                    ::: -x * sin theta + y * cos theta
---                    ::: VNil
-
-
--- this assumes that Phi is linear
---phiToPhi' :: (N.SNatI n, N.SNatI m) => Phi n m -> Phi' n m
---phiToPhi' (Phi phi) = Mat . fmap (phi . R) $ diagMatrix where
---  diagMatrix :: N.SNatI n => Vec n (Vec n Double)
---  diagMatrix = V.map nthCoord V.universe
---  nthCoord :: N.SNatI n => Fin n -> Vec n Double
---  nthCoord n = V.imap (\ind -> \_ -> if ind == n then 1 else 0) $ V.repeat 0
-
---phi'ToPhi :: (N.SNatI n, N.SNatI m) => Phi' n m -> Phi n m
---phi'ToPhi phi' = Phi (\rn -> vecMatProduct rn phi')
 

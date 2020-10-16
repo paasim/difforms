@@ -26,7 +26,7 @@ instance Show (Var n) where
   show (Var n 0)    = "x_" <> show n
   show (Var n exp)  = "x_" <> show n <> "^" <> show (exp + 1)
 
-evalVar :: Var n -> R n -> Double
+evalVar :: Var n -> R n -> Rational
 evalVar (Var ind exp) r = (x r V.! ind) ^ (exp + 1)
 
 instance N.SNatI n => Arbitrary (Var n) where
@@ -35,16 +35,16 @@ instance N.SNatI n => Arbitrary (Var n) where
 
 
 -- A product of variables with a coefficient
-data Term n = Term { termCoeff :: Double, termVars :: [Var n] }
+data Term n = Term { termCoeff :: Rational, termVars :: [Var n] }
 
-liftToTerm :: Double -> Term n
+liftToTerm :: Rational -> Term n
 liftToTerm a = Term a []
 
 -- A 'smart constructor' that removes variables
 -- when the coefficient is zero, combines variables
 -- with same dimension and sorts the variables
 -- in ascending order for simpler comparison and printing
-mkTerm :: Double -> [Var n] -> Term n
+mkTerm :: Rational -> [Var n] -> Term n
 mkTerm 0 _ = liftToTerm 0
 mkTerm d l = Term d . multiplySimilarTerms . L.sort $ l where
     -- [x, x, y] -> [x^2, y]
@@ -56,7 +56,7 @@ mkTerm d l = Term d . multiplySimilarTerms . L.sort $ l where
     then multiplySimilarTerms $ Var n1 (exp1+exp2+1) : rest
     else Var n1 exp1 : multiplySimilarTerms (Var n2 exp2 : rest)
 
-evalTerm :: Term n -> R n -> Double
+evalTerm :: Term n -> R n -> Rational
 evalTerm (Term d [])     _ = d
 evalTerm (Term d (v:vs)) r = evalVar v r * evalTerm (Term d vs) r
 
@@ -78,7 +78,7 @@ instance Ord (Term n) where
 
 instance N.SNatI n => Arbitrary (Term n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkTerm <$> fmap fromInteger arbitrary <*> listOf arbitrary
+  arbitrary = mkTerm <$> arbitrary <*> resize 4 (listOf arbitrary)
 
 -- the monoid action on term(s) is multiplication, not sum
 instance Semigroup (Term n) where
@@ -112,7 +112,7 @@ mkTerms t ts = Terms . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
   filterZeros :: NonEmpty (Term n) -> NonEmpty (Term n)
   filterZeros = fromMaybe (liftToTerm 0 :| []) . NE.nonEmpty . NE.filter (liftToTerm 0 /=)
 
-evalTerms :: Terms n -> R n -> Double
+evalTerms :: Terms n -> R n -> Rational
 evalTerms (Terms (t1 :| []))    r = evalTerm t1 r
 evalTerms (Terms (t1 :| t2:ts)) r = evalTerm t1 r + evalTerms (Terms $ t2 :| ts) r
 
@@ -122,7 +122,7 @@ instance Show (Terms n) where
 
 instance N.SNatI n => Arbitrary (Terms n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkTerms <$> arbitrary <*> listOf arbitrary
+  arbitrary = mkTerms <$> arbitrary <*> resize 4 (listOf arbitrary)
 
 -- the monoid action is now sum, not product as with term
 -- (this is because terms needs to be a semiring)
@@ -179,7 +179,7 @@ tangent v ts = foldr (<>) mempty . V.zipWith amult (x v) . fmap (\n -> partialD 
 type C' n = Terms n
 
 -- this is what I would like to get
---newtype C n = C { runC :: R n -> Double }
+--newtype C n = C { runC :: R n -> Rational }
 
 --pullbackC :: Phi n m -> C m -> C n
 --pullbackC (Phi nToM) (C mToD) = C $ mToD . nToM

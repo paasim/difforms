@@ -17,10 +17,10 @@ type OneTerm n   = Term n -> Bool
 type TwoTerm n   = Term n -> OneTerm n
 type ThreeTerm n = Term n -> TwoTerm n
 
-evalLiftedTerm :: Double -> R n -> Bool
+evalLiftedTerm :: Rational -> R n -> Bool
 evalLiftedTerm d r = evalTerm (liftToTerm d) r == d
 
-mkTermIsIdempotent :: Double -> [Var n] -> Bool
+mkTermIsIdempotent :: Rational -> [Var n] -> Bool
 mkTermIsIdempotent d vars = let t1 = mkTerm d vars
                             in t1 == mkTerm (termCoeff t1) (termVars t1)
 
@@ -93,7 +93,7 @@ main :: IO ()
 main = do
   putStrLn "Tests for Term:"
   qc "evaluating lifted double is identity"
-    (evalLiftedTerm :: Double -> R N.Nat3 -> Bool)
+    (evalLiftedTerm :: Rational -> R N.Nat3 -> Bool)
   qc "semigroup symmetric" (semigroupSymmetricTerm :: TwoTerm N.Nat3)
   qc "semigroup associative"  (semigroupAssociatesTerm :: ThreeTerm N.Nat3)
   -- no need to test for right identity because the monoid is symmetric
