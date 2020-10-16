@@ -5,3 +5,4 @@ stack.yaml.lock
 *.swp
 report.html
 temp/*
+src/Examples.hs
