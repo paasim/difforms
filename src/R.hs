@@ -77,6 +77,9 @@ transpose :: (N.SNatI m, N.SNatI m) => Mat n m -> Mat m n
 transpose (Mat VNil) = Mat . V.repeat . R $ VNil
 transpose (Mat (r1 ::: rest)) = appendCol r1 . transpose . Mat $ rest
 
+matMatProduct :: (N.SNatI n, N.SNatI m, N.SNatI l) => Mat n m -> Mat m l -> Mat n l
+matMatProduct m1 m2 =  Mat . fmap (\rm -> vecMatProduct rm m2) . mat $ m1
+
 diagMat :: N.SNatI n => Mat n n
 diagMat = Mat . fmap coordVec $ V.universe
 
