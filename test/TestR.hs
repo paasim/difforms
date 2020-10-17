@@ -63,19 +63,29 @@ colAppendProdWithCoordVec r m = matVecProduct (appendCol r m) (coordVec F.fin0) 
 main :: IO ()
 main = do
   putStrLn "Tests for R:"
-  qc "semigroup symmetric" (semigroupSymmetric :: TwoR N.Nat3)
-  qc "semigroup associative" (semigroupAssociates :: ThreeR N.Nat3)
+  qc "semigroup symmetric"
+    (semigroupSymmetric :: TwoR N.Nat3)
+  qc "semigroup associative"
+    (semigroupAssociates :: ThreeR N.Nat3)
   -- no need to test for right identity because the monoid is symmetric
-  qc "monoid left identity" (monoidLeftId :: OneR N.Nat3)
-  qc "semirng associative" (semirngAssociates :: ThreeR N.Nat3)
-  qc "semirn left identity" (semirngLeftId :: OneR N.Nat3)
-  qc "semirn right identity" (semirngRightId :: OneR N.Nat3)
-  qc "semiring distributive" (semiringDistributes :: FourR N.Nat3)
-  qc "semiring 0 left annihilator" (semiringLeftAnnih :: OneR N.Nat3)
-  qc "semiring 0 right annihilator" (semiringRightAnnih :: OneR N.Nat3)
+  qc "monoid left identity"
+    (monoidLeftId :: OneR N.Nat3)
+  qc "semirng associative"
+    (semirngAssociates :: ThreeR N.Nat3)
+  qc "semirn left identity"
+    (semirngLeftId :: OneR N.Nat3)
+  qc "semirn right identity"
+    (semirngRightId :: OneR N.Nat3)
+  qc "semiring distributive"
+    (semiringDistributes :: FourR N.Nat3)
+  qc "semiring 0 left annihilator"
+    (semiringLeftAnnih :: OneR N.Nat3)
+  qc "semiring 0 right annihilator"
+    (semiringRightAnnih :: OneR N.Nat3)
 
   putStrLn "Tests for Mat:"
-  qc "transpose is idenpotent" (transpIdenpotent :: OneMat N.Nat5 N.Nat3)
+  qc "transpose is idenpotent"
+    (transpIdenpotent :: OneMat N.Nat5 N.Nat3)
   qc "appending a row and extracting it is identity"
     (rowAppendProdWithCoordVec :: RMat N.Nat5 N.Nat3)
   qc "appending a col and extracting it is identity"

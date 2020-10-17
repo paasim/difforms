@@ -17,7 +17,8 @@ type OneTerm n   = Term n -> Bool
 type TwoTerm n   = Term n -> OneTerm n
 type ThreeTerm n = Term n -> TwoTerm n
 
-evalLiftedTerm :: Rational -> R n -> Bool
+type EvalLiftedTerm n = Rational -> R n -> Bool
+evalLiftedTerm :: EvalLiftedTerm n
 evalLiftedTerm d r = evalTerm (liftToTerm d) r == d
 
 mkTermIsIdempotent :: Rational -> [Var n] -> Bool
@@ -39,7 +40,8 @@ type TwoTerms n   = Terms n -> OneTerms n
 type ThreeTerms n = Terms n -> TwoTerms n
 type FourTerms n  = Terms n -> ThreeTerms n
 
-evalLiftedTerms :: R n -> Term n -> Bool
+type EvalLiftedTerms n = R n -> Term n -> Bool
+evalLiftedTerms :: EvalLiftedTerms n
 evalLiftedTerms r t = evalTerms (liftToTerms t) r == evalTerm t r
 
 mkTermsIsIdempotent :: Term n -> [Term n] -> Bool
@@ -93,25 +95,37 @@ main :: IO ()
 main = do
   putStrLn "Tests for Term:"
   qc "evaluating lifted double is identity"
-    (evalLiftedTerm :: Rational -> R N.Nat3 -> Bool)
-  qc "semigroup symmetric" (semigroupSymmetricTerm :: TwoTerm N.Nat3)
-  qc "semigroup associative"  (semigroupAssociatesTerm :: ThreeTerm N.Nat3)
+    (evalLiftedTerm :: EvalLiftedTerm N.Nat3)
+  qc "semigroup symmetric"
+    (semigroupSymmetricTerm :: TwoTerm N.Nat3)
+  qc "semigroup associative"
+    (semigroupAssociatesTerm :: ThreeTerm N.Nat3)
   -- no need to test for right identity because the monoid is symmetric
-  qc "monoid left identity" (monoidLeftIdTerm :: OneTerm N.Nat3)
+  qc "monoid left identity"
+    (monoidLeftIdTerm :: OneTerm N.Nat3)
 
   putStrLn "Tests for Terms:"
   qc "evaluating lifted term is the same as evaluating the term"
-    (evalLiftedTerms :: R N.Nat3 -> Term N.Nat3 -> Bool)
-  qc "semigroup symmetric" (semigroupSymmetric :: TwoTerms N.Nat3)
-  qc "semigroup associative"  (semigroupAssociates :: ThreeTerms N.Nat3)
+    (evalLiftedTerms :: EvalLiftedTerms N.Nat3)
+  qc "semigroup symmetric"
+    (semigroupSymmetric :: TwoTerms N.Nat3)
+  qc "semigroup associative"
+    (semigroupAssociates :: ThreeTerms N.Nat3)
   -- no need to test for right identity because the monoid is symmetric
-  qc "monoid left identity" (monoidLeftId :: OneTerms N.Nat3)
-  qc "semirng associative" (semirngAssociates :: ThreeTerms N.Nat3)
-  qc "semirng left id" (semirngLeftId :: OneTerms N.Nat3)
-  qc "semirng right id" (semirngRightId :: OneTerms N.Nat3)
-  qc "semiring distributive" (semiringDistributes :: FourTerms N.Nat3)
-  qc "semiring 0 left annihilator" (semiringLeftAnnih :: OneTerms N.Nat3)
-  qc "semiring 0 right annihilator" (semiringRightAnnih :: OneTerms N.Nat3)
+  qc "monoid left identity"
+    (monoidLeftId :: OneTerms N.Nat3)
+  qc "semirng associative"
+    (semirngAssociates :: ThreeTerms N.Nat3)
+  qc "semirng left id"
+    (semirngLeftId :: OneTerms N.Nat3)
+  qc "semirng right id"
+    (semirngRightId :: OneTerms N.Nat3)
+  qc "semiring distributive"
+    (semiringDistributes :: FourTerms N.Nat3)
+  qc "semiring 0 left annihilator"
+    (semiringLeftAnnih :: OneTerms N.Nat3)
+  qc "semiring 0 right annihilator"
+    (semiringRightAnnih :: OneTerms N.Nat3)
   qc "algebra multiplication associative"
     (amultAssociates :: Int -> Int -> OneTerms N.Nat3)
   qc "algebra multiplication distributive in double"
