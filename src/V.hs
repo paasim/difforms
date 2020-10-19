@@ -10,7 +10,6 @@ import qualified Data.Type.Nat as N
 import Test.QuickCheck
 import Typeclasses
 import R
-import Phi
 import C
 
 newtype V n = V { vCoeff :: R n }
@@ -22,15 +21,12 @@ instance N.SNatI n => Arbitrary (V n) where
   arbitrary = V <$> arbitrary
 
 instance N.SNatI n => Vectorspace (V n) where
-  vsempty = V $ mempty
-  vsinv v = vsmult (-1) v
+  vsempty = V mempty
+  vsinv = vsmult (-1)
   vsadd (V rn1) (V rn2) = V $ rn1 <> rn2
-  vsmult d v = V . R . fmap (* d) . x . vCoeff $ v
+  vsmult d = V . R . fmap (* d) . x . vCoeff
 
 -- this is just a different representation for C.tangent
 evalV :: N.SNatI n => V n -> C' n -> C' n
 evalV (V v) c = foldr (<>) mempty . V.zipWith amult (x v) . fmap (\n -> partialD n c) $ V.universe
-
-pushforward :: (N.SNatI n, N.SNatI m) => Phi' n m -> V n -> V m
-pushforward m v = V $ vecMatProduct (vCoeff v) m
 

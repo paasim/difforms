@@ -8,7 +8,7 @@ class Vectorspace g where
   vsempty :: g
   vsinv :: g -> g
   vsadd :: g -> g -> g
-  vsmult :: Double -> g -> g
+  vsmult :: Rational -> g -> g
 
 -- The monoid is assumed to commute,
 -- ie. (a <> b) <> c = a <> (b <> c)
@@ -22,8 +22,8 @@ class Semirng g => Semiring g where
   sempty :: g
 
 -- Assumes that mutliplication in g is compatible with
--- multiplication in Double in the sense that
+-- multiplication in Rational in the sense that
 -- (amult a g) `sappend` (amult a' g') = amult (a*a') (g `sappend` g')
 class Semiring g => Algebra g where
-  amult :: Double -> g -> g
+  amult :: Rational -> g -> g
 

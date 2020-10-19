@@ -32,7 +32,7 @@ vsInv v ts = evalV (vsadd v (vsinv v)) ts == evalV vsempty ts
 vsmultAssociates :: N.SNatI n => Int -> Int -> OneV n
 vsmultAssociates i1 i2 v ts = let d1 = fromIntegral i1
                                   d2 = fromIntegral i2
-  in evalV (vsmult d1 (vsmult d2 v)) ts == (evalV (vsmult (d1*d2) v)) ts
+  in evalV (vsmult d1 (vsmult d2 v)) ts == evalV (vsmult (d1*d2) v) ts
 
 vsmultLeftId :: N.SNatI n => OneV n
 vsmultLeftId v ts = evalV (vsmult 1 v) ts == evalV v ts
@@ -44,16 +44,27 @@ vsmultDistributes i1 i2 v1 v2 ts = let d1 = fromIntegral i1
       == evalV (vsadd (vsadd (vsmult d1 v1) (vsmult d1 v2))
                       (vsadd (vsmult d2 v1) (vsmult d2 v2))) ts
 
+type LeibnizRule n = V n -> Terms n -> Terms n -> Bool
+leibnizRule :: N.SNatI n => LeibnizRule n
+leibnizRule v ts1 ts2 = evalV v (ts1 `sappend` ts2) == (evalV v ts1 `sappend` ts2) <> (ts1 `sappend` evalV v ts2)
+
 main :: IO ()
 main = do
-  qc "vector space associative" (vsAssociates :: ThreeV N.Nat3)
-  qc "vector space commutative" (vsCommutes :: TwoV N.Nat3)
-  qc "vector space invertible" (vsInv :: OneV N.Nat3)
+  qc "vector space associative"
+    (vsAssociates :: ThreeV N.Nat3)
+  qc "vector space commutative"
+    (vsCommutes :: TwoV N.Nat3)
+  qc "vector space invertible"
+    (vsInv :: OneV N.Nat3)
   qc "vector space multiplication associative"
     (vsmultAssociates :: Int -> Int -> OneV N.Nat3)
-  qc "vector space 1 multiplicative left identity" (vsmultLeftId :: OneV N.Nat3)
+  qc "vector space 1 multiplicative left identity"
+    (vsmultLeftId :: OneV N.Nat3)
   qc "vector space multiplication distributive"
     (vsmultDistributes :: Int -> Int -> TwoV N.Nat3)
+  qc "V satisfies the Leibniz rule (derivative of product)"
+    (leibnizRule :: LeibnizRule N.Nat3)
+
 
 
 -- rename for exporting
