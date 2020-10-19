@@ -62,7 +62,7 @@ evalTerm (Term d (v:vs)) r = evalVar v r * evalTerm (Term d vs) r
 
 instance Show (Term n) where
   show (Term d []) = show d
-  show (Term d l)  = show d <> "*" <> (L.intercalate "*" . fmap show $ l)
+  show (Term d l)  = "(" <> show d <> ")*" <> (L.intercalate "*" . fmap show $ l)
 
 instance Eq (Term n) where
   (Term 0 _) == (Term 0 _) = True
