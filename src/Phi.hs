@@ -45,7 +45,7 @@ idPhi :: N.SNatI n => Phi n n
 idPhi = Phi . fmap (\n -> liftToTerms . mkTerm 1 $ [Var n 0]) $ V.universe
 
 compPhi :: (N.SNatI n, N.SNatI m, N.SNatI l) => Phi n m -> Phi m l -> Phi n l
-compPhi phiNM phiML = Phi . fmap (pullback phiNM) . phiComp $ phiML
+compPhi phiNM = Phi . fmap (pullback phiNM) . phiComp
 
 showStrAsFun :: Fin n -> String -> String
 showStrAsFun n str = str <> " -> x_" <> show n

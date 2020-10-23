@@ -57,7 +57,7 @@ instance N.SNatI n => Arbitrary (Vp n) where
 -- basically a semigroup but this may fail if the base points are not the same...
 -- Vp n is a semigroup only when the basepoints are the same
 vpappend :: Vp n -> Vp n -> Maybe (Vp n)
-vpappend (Vp p1 v1) (Vp p2 v2) = if p1 /= p2 then Nothing else Just . Vp p1 . x $ (R v1) <> (R v2)
+vpappend (Vp p1 v1) (Vp p2 v2) = if p1 /= p2 then Nothing else Just . Vp p1 . x $ R v1 <> R v2
 
 -- this is the ModuleQ-multiplication
 vpmult :: N.SNatI n => Rational -> Vp n -> Vp n
@@ -70,5 +70,5 @@ evalVp :: N.SNatI n => Vp n -> C n -> Rational
 evalVp (Vp p v) c = dotProduct (R v) . R . fmap (\n -> evalTerms (partialD n c) p) $ V.universe
 
 unitVp :: N.SNatI n => Vp n
-unitVp = vToVp unitV $ mempty
+unitVp = vToVp unitV mempty
 

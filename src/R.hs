@@ -48,7 +48,7 @@ instance Arbitrary SimpleRational where
 
 simpleRationalToRational :: SimpleRational -> Rational
 simpleRationalToRational (SimpleRational (num, denom))
-  = toInteger num % (toInteger $ denom + 1)
+  = toInteger num % toInteger (denom + 1)
 
 genSimpleRational :: Gen Rational
 genSimpleRational = simpleRationalToRational <$> arbitrary

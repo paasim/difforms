@@ -91,7 +91,7 @@ instance Monoid (Term n) where
 
 -- needed to make terms group
 negateTerm :: Term n -> Term n
-negateTerm (Term d l) = (Term (negate d) l)
+negateTerm (Term d l) = Term (negate d) l
 
 -- A sum of nonzero term(s), ie. polynomials as terms is of the form
 -- a*x_i*...*x_j + bx_h*...*x_k + ...
@@ -178,10 +178,10 @@ partialD n (Terms (t1 :| []))    = partialDTerm n t1
 partialD n (Terms (t1 :| t2:ts)) = partialDTerm n t1 <> partialD n (Terms (t2 :| ts))
 
 gradient :: N.SNatI n => Terms n -> Vec n (Terms n)
-gradient ts = fmap (\n -> partialD n ts) $ V.universe
+gradient ts = fmap (\n -> partialD n ts) V.universe
 
 gradientAt :: N.SNatI n => R n -> Terms n -> R n
-gradientAt rn ts = R . fmap (\ts -> evalTerms ts rn) . gradient $ ts
+gradientAt rn = R . fmap (\ts -> evalTerms ts rn) . gradient
 
 
 -- C n, the set of continuous functions is approximated by polynomials

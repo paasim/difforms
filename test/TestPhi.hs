@@ -19,7 +19,7 @@ pullbackDef phi tsm rn = evalTerms (pullback phi tsm) rn ==
 type PushforwardDef n m = Phi n m -> Vp n -> C m -> Bool
 pushforwardDef :: (N.SNatI n, N.SNatI m) => PushforwardDef n m
 pushforwardDef phi vpn tsm =
-  (evalVp (pushforward phi vpn) tsm) == (evalVp vpn $ pullback phi tsm)
+  evalVp (pushforward phi vpn) tsm == evalVp vpn (pullback phi tsm)
 
 -- tests for:
 -- pushforward is a functor

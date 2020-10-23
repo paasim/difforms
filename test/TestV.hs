@@ -87,8 +87,8 @@ semigroupAssociatesVp :: N.SNatI n => SemigroupAssociatesVp n
 semigroupAssociatesVp ts v1 v2 v3 p = let vp1 = Vp p v1
                                           vp2 = Vp p v2
                                           vp3 = Vp p v3
-  in fmap (\vp -> evalVp vp ts) ((vpappend vp1 vp2) >>= \vp -> vpappend vp vp3)
-    == fmap (\vp -> evalVp vp ts) ((vpappend vp2 vp3) >>= vpappend vp1)
+  in fmap (\vp -> evalVp vp ts) (vpappend vp1 vp2 >>= \vp -> vpappend vp vp3)
+    == fmap (\vp -> evalVp vp ts) (vpappend vp2 vp3 >>= vpappend vp1)
 
 {-
 type MonoidLeftIdVp n = C n -> OneVp n
@@ -134,7 +134,7 @@ linearAddVp ts1 ts2 v p = let vp = Vp p v
 type LinearMultVp n = Rational -> C n -> OneVp n
 linearMultVp :: N.SNatI n => LinearMultVp n
 linearMultVp r ts v p = let vp = Vp p v
-  in evalVp vp (amult r ts) == r * (evalVp vp ts)
+  in evalVp vp (amult r ts) == r * evalVp vp ts
 
 type LeibnizRuleVp n =  C n -> C n -> OneVp n
 leibnizRuleVp :: N.SNatI n => LeibnizRuleVp n
