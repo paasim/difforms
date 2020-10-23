@@ -1,5 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 module R where
 
 import Data.Fin ( Fin(..) )
@@ -8,6 +10,7 @@ import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
 import Data.Type.Nat ( Nat(..) )
 import qualified Data.Type.Nat as N
+import Data.Ratio ( (%) )
 import Test.QuickCheck
 import Typeclasses
 
@@ -23,24 +26,38 @@ instance Show (R n) where
 
 -- sum as the monoid
 instance Semigroup (R n) where
-  (R x) <> (R x') = R $ V.zipWith (+) x x'
+  r <> r' = R $ V.zipWith (+) (x r) (x r')
 
 instance N.SNatI n => Monoid (R n) where
   mempty = R $ V.repeat 0
 
--- multiplication as the semiring
-instance N.SNatI n => Semirng (R n) where
-  sappend (R x) (R x') = R $ V.zipWith (*) x x'
+instance N.SNatI n => Group (R n) where
+  ginv = R . fmap negate . x
 
-instance N.SNatI n => Semiring (R n) where
-  sempty = R $ V.repeat 1
+instance N.SNatI n => ModuleQ (R n) where
+  mqmult d = R . fmap (* d) . x
 
 dotProduct :: N.SNatI n => R n -> R n -> Rational
-dotProduct pt = sum . x . sappend pt
+dotProduct r r' = sum . V.toList $ V.zipWith (*) (x r) (x r')
 
--- sample just integers for simplicity
+newtype SimpleRational = SimpleRational (Int, Word)
+
+instance Arbitrary SimpleRational where
+  arbitrary = curry SimpleRational <$> arbitrary
+                                   <*> arbitrary
+
+simpleRationalToRational :: SimpleRational -> Rational
+simpleRationalToRational (SimpleRational (num, denom))
+  = toInteger num % (toInteger $ denom + 1)
+
+genSimpleRational :: Gen Rational
+genSimpleRational = simpleRationalToRational <$> arbitrary
+
+genSimpleRationalVec :: N.SNatI n => Gen (Vec n Rational)
+genSimpleRationalVec = fmap (fmap simpleRationalToRational) arbitrary
+
 instance N.SNatI n => Arbitrary (R n) where
-  arbitrary = R <$> arbitrary
+  arbitrary = R <$> genSimpleRationalVec
 
 coordVec :: N.SNatI n => Fin n -> R n
 coordVec n = R . V.imap (\i _ -> if i == n then 1 else 0) $ V.universe

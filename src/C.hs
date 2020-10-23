@@ -31,7 +31,7 @@ evalVar (Var ind exp) r = (x r V.! ind) ^ (exp + 1)
 
 instance N.SNatI n => Arbitrary (Var n) where
   arbitrary = Var <$> (elements . V.toList $ V.universe)
-                  <*> elements [0..10]
+                  <*> elements [0..5]
 
 
 -- A product of variables with a coefficient
@@ -78,7 +78,7 @@ instance Ord (Term n) where
 
 instance N.SNatI n => Arbitrary (Term n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkTerm <$> arbitrary <*> resize 4 (listOf arbitrary)
+  arbitrary = mkTerm <$> genSimpleRational <*> resize 2 (listOf arbitrary)
 
 -- the monoid action on term(s) is multiplication, not sum
 instance Semigroup (Term n) where
@@ -88,6 +88,10 @@ instance Semigroup (Term n) where
 
 instance Monoid (Term n) where
   mempty = liftToTerm 1
+
+-- needed to make terms group
+negateTerm :: Term n -> Term n
+negateTerm (Term d l) = (Term (negate d) l)
 
 -- A sum of nonzero term(s), ie. polynomials as terms is of the form
 -- a*x_i*...*x_j + bx_h*...*x_k + ...
@@ -132,6 +136,10 @@ instance Semigroup (Terms n) where
 instance Monoid (Terms n) where
   mempty = liftToTerms . liftToTerm $ 0
 
+-- Being (Abelian) Group and Semiring makes it a Ring
+instance Group (Terms n) where
+  ginv (Terms (t :| ts)) = mkTerms (negateTerm t) (fmap negateTerm ts)
+
 -- this is the multiplication, kind of confusingly corresponding
 -- to monoid action of term
 instance Semirng (Terms n) where
@@ -169,18 +177,13 @@ partialD :: Fin n -> Terms n -> Terms n
 partialD n (Terms (t1 :| []))    = partialDTerm n t1
 partialD n (Terms (t1 :| t2:ts)) = partialDTerm n t1 <> partialD n (Terms (t2 :| ts))
 
--- given coefficients, uses the basis
--- (this is :: R n -> V n)
--- this is just a different representation for V.evalV
-tangent :: N.SNatI n => R n -> Terms n -> Terms n
-tangent v ts = foldr (<>) mempty . V.zipWith amult (x v) . fmap (\n -> partialD n ts) $ V.universe
+gradient :: N.SNatI n => Terms n -> Vec n (Terms n)
+gradient ts = fmap (\n -> partialD n ts) $ V.universe
+
+gradientAt :: N.SNatI n => R n -> Terms n -> R n
+gradientAt rn ts = R . fmap (\ts -> evalTerms ts rn) . gradient $ ts
+
 
 -- C n, the set of continuous functions is approximated by polynomials
-type C' n = Terms n
-
--- this is what I would like to get
---newtype C n = C { runC :: R n -> Rational }
-
---pullbackC :: Phi n m -> C m -> C n
---pullbackC (Phi nToM) (C mToD) = C $ mToD . nToM
+type C n = Terms n
 
