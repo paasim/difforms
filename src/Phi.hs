@@ -24,10 +24,10 @@ instance (N.SNatI n, N.SNatI m) => Arbitrary (Phi n m) where
   arbitrary = Phi <$> arbitrary
 
 evalPhi :: Phi n m -> R n -> R m
-evalPhi phi rn = R . fmap (\cn -> evalTerms cn rn) . phiComp $ phi
+evalPhi phi rn = R . fmap (\cn -> evalC cn rn) . phiComp $ phi
 
 pullbackTerm :: Phi n m -> Term m -> C n
-pullbackTerm phi (Term d []) = liftToTerms . liftToTerm $ d
+pullbackTerm phi (Term d []) = liftToC . liftToTerm $ d
 pullbackTerm phi (Term d (Var n exp : ts)) =
   sappend (nthPower (exp+1) $ phiComp phi V.! n) (pullbackTerm phi $ Term d ts)
 
@@ -42,7 +42,7 @@ pushforward phi (Vp p v) = Vp (evalPhi phi p)
                               (x $ vecMatProduct (R v) (jacobianAt phi p))
 
 idPhi :: N.SNatI n => Phi n n
-idPhi = Phi . fmap (\n -> liftToTerms . mkTerm 1 $ [Var n 0]) $ V.universe
+idPhi = Phi . fmap (\n -> liftToC . mkTerm 1 $ [Var n 0]) $ V.universe
 
 compPhi :: (N.SNatI n, N.SNatI m, N.SNatI l) => Phi n m -> Phi m l -> Phi n l
 compPhi phiNM = Phi . fmap (pullback phiNM) . phiComp

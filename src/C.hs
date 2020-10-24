@@ -95,16 +95,16 @@ negateTerm (Term d l) = Term (negate d) l
 
 -- A sum of nonzero term(s), ie. polynomials as terms is of the form
 -- a*x_i*...*x_j + bx_h*...*x_k + ...
-newtype Terms n = Terms (NonEmpty (Term n)) deriving (Eq, Ord)
+newtype C n = Terms (NonEmpty (Term n)) deriving (Eq, Ord)
 
-liftToTerms :: Term n -> Terms n
-liftToTerms t1 = Terms $ t1 :| []
+liftToC :: Term n -> C n
+liftToC t1 = Terms $ t1 :| []
 
 -- A 'smart constructor' which ensures that the term(s)
 -- are in correct order, terms with common variable-part are
 -- summed together and and terms with coefficient 0 are filtered out
-mkTerms :: Term n -> [Term n] -> Terms n
-mkTerms t ts = Terms . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
+mkC :: Term n -> [Term n] -> C n
+mkC t ts = Terms . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
   -- [2xy^2, -5xy^2, 3x] -> [-3xy^2, 3x]
   sumSimilarTerms :: NonEmpty (Term n) -> NonEmpty (Term n)
   sumSimilarTerms (t :| [])       = t :| []
@@ -116,74 +116,70 @@ mkTerms t ts = Terms . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
   filterZeros :: NonEmpty (Term n) -> NonEmpty (Term n)
   filterZeros = fromMaybe (liftToTerm 0 :| []) . NE.nonEmpty . NE.filter (liftToTerm 0 /=)
 
-evalTerms :: Terms n -> R n -> Rational
-evalTerms (Terms (t1 :| []))    r = evalTerm t1 r
-evalTerms (Terms (t1 :| t2:ts)) r = evalTerm t1 r + evalTerms (Terms $ t2 :| ts) r
+evalC :: C n -> R n -> Rational
+evalC (Terms (t1 :| []))    r = evalTerm t1 r
+evalC (Terms (t1 :| t2:ts)) r = evalTerm t1 r + evalC (Terms $ t2 :| ts) r
 
-instance Show (Terms n) where
+instance Show (C n) where
   show (Terms (t :| []))   = show t
   show (Terms (t :| rest)) = show t <> " + " <> (L.intercalate " + " . fmap show $ rest)
 
-instance N.SNatI n => Arbitrary (Terms n) where
+instance N.SNatI n => Arbitrary (C n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkTerms <$> arbitrary <*> resize 4 (listOf arbitrary)
+  arbitrary = mkC <$> arbitrary <*> resize 4 (listOf arbitrary)
 
 -- the monoid action is now sum, not product as with term
 -- (this is because terms needs to be a semiring)
-instance Semigroup (Terms n) where
-  (Terms ts1) <> (Terms ts2) = let (t :| ts) = ts1 <> ts2 in mkTerms t ts
+instance Semigroup (C n) where
+  (Terms c1) <> (Terms c2) = let (t :| ts) = c1 <> c2 in mkC t ts
 
-instance Monoid (Terms n) where
-  mempty = liftToTerms . liftToTerm $ 0
+instance Monoid (C n) where
+  mempty = liftToC . liftToTerm $ 0
 
 -- Being (Abelian) Group and Semiring makes it a Ring
-instance Group (Terms n) where
-  ginv (Terms (t :| ts)) = mkTerms (negateTerm t) (fmap negateTerm ts)
+instance Group (C n) where
+  ginv (Terms (t :| ts)) = mkC (negateTerm t) (fmap negateTerm ts)
 
 -- this is the multiplication, kind of confusingly corresponding
 -- to monoid action of term
-instance Semirng (Terms n) where
+instance Semirng (C n) where
   -- could use mempty term here but this is easier to read
-  sappend (Terms ts1) (Terms ts2) = let (t :| ts) = ((<>) <$> ts1 <*> ts2) in mkTerms t ts
+  sappend (Terms c1) (Terms c2) = let (t :| ts) = ((<>) <$> c1 <*> c2) in mkC t ts
 
-instance Semiring (Terms n) where
-  sempty = liftToTerms . liftToTerm $ 1
+instance Semiring (C n) where
+  sempty = liftToC . liftToTerm $ 1
 
-nthPower :: Word -> Terms n -> Terms n
+nthPower :: Word -> C n -> C n
 nthPower 0 _ = sempty
 nthPower n t = sappend t $ nthPower (n-1) t
 
-instance Algebra (Terms n) where
-  amult a = sappend (liftToTerms . liftToTerm $ a)
+instance Algebra (C n) where
+  amult a = sappend (liftToC . liftToTerm $ a)
 
 -- not endomap due to term not containing sums
-partialDTerm :: Fin n -> Term n -> Terms n
-partialDTerm _ (Term _ []) = liftToTerms . liftToTerm $ 0
+partialDTerm :: Fin n -> Term n -> C n
+partialDTerm _ (Term _ []) = liftToC . liftToTerm $ 0
 partialDTerm n (Term d (Var ind exp : rest)) =
-  let f = liftToTerms $ Term 1 [Var ind exp]
-      g = liftToTerms $ Term d rest
+  let f = liftToC $ Term 1 [Var ind exp]
+      g = liftToC $ Term d rest
       df = case (n == ind, exp == 0) of
-        (False, _)   -> liftToTerms . liftToTerm $ 0
-        (True, True) -> liftToTerms . liftToTerm $ 1
+        (False, _)   -> liftToC . liftToTerm $ 0
+        (True, True) -> liftToC . liftToTerm $ 1
         -- exp+1 because exp is one lower than the exponent
-        (True, False) -> liftToTerms . Term (fromIntegral exp + 1) $ [Var ind (exp-1)]
+        (True, False) -> liftToC . Term (fromIntegral exp + 1) $ [Var ind (exp-1)]
       dg = partialDTerm n (Term d rest)
-  -- f, g, df are Term, dg is a Terms
+  -- f, g, df are Term, dg is a C
   in sappend df g <> sappend f dg
 
 -- these form a basis on the tangent space
 -- (this is :: Fin n -> V n)
-partialD :: Fin n -> Terms n -> Terms n
+partialD :: Fin n -> C n -> C n
 partialD n (Terms (t1 :| []))    = partialDTerm n t1
 partialD n (Terms (t1 :| t2:ts)) = partialDTerm n t1 <> partialD n (Terms (t2 :| ts))
 
-gradient :: N.SNatI n => Terms n -> Vec n (Terms n)
-gradient ts = fmap (\n -> partialD n ts) V.universe
+gradient :: N.SNatI n => C n -> Vec n (C n)
+gradient c = fmap (\n -> partialD n c) V.universe
 
-gradientAt :: N.SNatI n => R n -> Terms n -> R n
-gradientAt rn = R . fmap (\ts -> evalTerms ts rn) . gradient
-
-
--- C n, the set of continuous functions is approximated by polynomials
-type C n = Terms n
+gradientAt :: N.SNatI n => R n -> C n -> R n
+gradientAt rn = R . fmap (\c -> evalC c rn) . gradient
 

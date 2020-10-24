@@ -14,7 +14,7 @@ import R
 import C
 
 -- Vector field
-newtype V n = V { vComp :: Vec n (Terms n) }
+newtype V n = V { vComp :: Vec n (C n) }
 
 instance Show (V n) where
   show (V v) = "V: (" <> (L.intercalate ", " . V.toList . fmap show $ v) <> ")"
@@ -64,10 +64,10 @@ vpmult :: N.SNatI n => Rational -> Vp n -> Vp n
 vpmult d (Vp p v) = Vp p $ fmap (* d) v
 
 vToVp :: V n -> R n -> Vp n
-vToVp v r = Vp r . fmap (\ts -> evalTerms ts r) . vComp $ v
+vToVp v r = Vp r . fmap (\c -> evalC c r) . vComp $ v
 
 evalVp :: N.SNatI n => Vp n -> C n -> Rational
-evalVp (Vp p v) c = dotProduct (R v) . R . fmap (\n -> evalTerms (partialD n c) p) $ V.universe
+evalVp (Vp p v) c = dotProduct (R v) . R . fmap (\n -> evalC (partialD n c) p) $ V.universe
 
 unitVp :: N.SNatI n => Vp n
 unitVp = vToVp unitV mempty
