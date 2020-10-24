@@ -23,8 +23,8 @@ newtype Phi n m = Phi { phiComp :: Vec m (C n) } deriving (Eq, Ord)
 instance (N.SNatI n, N.SNatI m) => Arbitrary (Phi n m) where
   arbitrary = Phi <$> arbitrary
 
-evalPhi :: Phi n m -> R n -> R m
-evalPhi phi rn = R . fmap (\cn -> evalC cn rn) . phiComp $ phi
+evalPhi :: R n -> Phi n m -> R m
+evalPhi rn = R . fmap (evalC rn) . phiComp
 
 pullbackTerm :: Phi n m -> Term m -> C n
 pullbackTerm phi (Term d []) = liftToC . liftToTerm $ d
@@ -38,7 +38,7 @@ pullback phi (Terms (t1 :| t2:ts)) = pullbackTerm phi t1 <> pullback phi (Terms 
 
 
 pushforward :: (N.SNatI n, N.SNatI m) => Phi n m -> Vp n -> Vp m
-pushforward phi (Vp p v) = Vp (evalPhi phi p)
+pushforward phi (Vp p v) = Vp (evalPhi p phi)
                               (x $ vecMatProduct (R v) (jacobianAt phi p))
 
 idPhi :: N.SNatI n => Phi n n

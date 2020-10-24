@@ -26,8 +26,8 @@ instance Show (Var n) where
   show (Var n 0)    = "x_" <> show n
   show (Var n exp)  = "x_" <> show n <> "^" <> show (exp + 1)
 
-evalVar :: Var n -> R n -> Rational
-evalVar (Var ind exp) r = (x r V.! ind) ^ (exp + 1)
+evalVar :: R n -> Var n -> Rational
+evalVar r (Var ind exp) = (x r V.! ind) ^ (exp + 1)
 
 instance N.SNatI n => Arbitrary (Var n) where
   arbitrary = Var <$> (elements . V.toList $ V.universe)
@@ -56,9 +56,9 @@ mkTerm d l = Term d . multiplySimilarTerms . L.sort $ l where
     then multiplySimilarTerms $ Var n1 (exp1+exp2+1) : rest
     else Var n1 exp1 : multiplySimilarTerms (Var n2 exp2 : rest)
 
-evalTerm :: Term n -> R n -> Rational
-evalTerm (Term d [])     _ = d
-evalTerm (Term d (v:vs)) r = evalVar v r * evalTerm (Term d vs) r
+evalTerm :: R n -> Term n -> Rational
+evalTerm _ (Term d [])     = d
+evalTerm r (Term d (v:vs)) = evalVar r v * evalTerm r (Term d vs)
 
 instance Show (Term n) where
   show (Term d []) = show d
@@ -116,9 +116,9 @@ mkC t ts = Terms . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
   filterZeros :: NonEmpty (Term n) -> NonEmpty (Term n)
   filterZeros = fromMaybe (liftToTerm 0 :| []) . NE.nonEmpty . NE.filter (liftToTerm 0 /=)
 
-evalC :: C n -> R n -> Rational
-evalC (Terms (t1 :| []))    r = evalTerm t1 r
-evalC (Terms (t1 :| t2:ts)) r = evalTerm t1 r + evalC (Terms $ t2 :| ts) r
+evalC :: R n -> C n -> Rational
+evalC r (Terms (t1 :| []))    = evalTerm r t1
+evalC r (Terms (t1 :| t2:ts)) = evalTerm r t1 + evalC r (Terms $ t2 :| ts)
 
 instance Show (C n) where
   show (Terms (t :| []))   = show t
@@ -157,9 +157,9 @@ instance Algebra (C n) where
   amult a = sappend (liftToC . liftToTerm $ a)
 
 -- not endomap due to term not containing sums
-partialDTerm :: Fin n -> Term n -> C n
-partialDTerm _ (Term _ []) = liftToC . liftToTerm $ 0
-partialDTerm n (Term d (Var ind exp : rest)) =
+partialDTerm :: Term n -> Fin n -> C n
+partialDTerm (Term _ []) n = liftToC . liftToTerm $ 0
+partialDTerm (Term d (Var ind exp : rest)) n =
   let f = liftToC $ Term 1 [Var ind exp]
       g = liftToC $ Term d rest
       df = case (n == ind, exp == 0) of
@@ -167,19 +167,19 @@ partialDTerm n (Term d (Var ind exp : rest)) =
         (True, True) -> liftToC . liftToTerm $ 1
         -- exp+1 because exp is one lower than the exponent
         (True, False) -> liftToC . Term (fromIntegral exp + 1) $ [Var ind (exp-1)]
-      dg = partialDTerm n (Term d rest)
+      dg = partialDTerm (Term d rest) n
   -- f, g, df are Term, dg is a C
   in sappend df g <> sappend f dg
 
 -- these form a basis on the tangent space
 -- (this is :: Fin n -> V n)
-partialD :: Fin n -> C n -> C n
-partialD n (Terms (t1 :| []))    = partialDTerm n t1
-partialD n (Terms (t1 :| t2:ts)) = partialDTerm n t1 <> partialD n (Terms (t2 :| ts))
+partialD :: C n -> Fin n -> C n
+partialD (Terms (t1 :| []))    n = partialDTerm t1 n
+partialD (Terms (t1 :| t2:ts)) n = partialDTerm t1 n <> partialD (Terms (t2 :| ts)) n
 
 gradient :: N.SNatI n => C n -> Vec n (C n)
-gradient c = fmap (\n -> partialD n c) V.universe
+gradient c = fmap (partialD c) V.universe
 
 gradientAt :: N.SNatI n => R n -> C n -> R n
-gradientAt rn = R . fmap (\c -> evalC c rn) . gradient
+gradientAt rn = R . fmap (evalC rn) . gradient
 

@@ -19,7 +19,7 @@ type ThreeTerm n = Term n -> TwoTerm n
 
 type EvalLiftedTerm n = Rational -> R n -> Bool
 evalLiftedTerm :: EvalLiftedTerm n
-evalLiftedTerm d r = evalTerm (liftToTerm d) r == d
+evalLiftedTerm d r = evalTerm r (liftToTerm d) == d
 
 mkTermIsIdempotent :: Rational -> [Var n] -> Bool
 mkTermIsIdempotent d vars = let t1 = mkTerm d vars
@@ -42,7 +42,7 @@ type FourC n  = C n -> ThreeC n
 
 type EvalLiftedC n = R n -> Term n -> Bool
 evalLiftedC :: EvalLiftedC n
-evalLiftedC r t = evalC (liftToC t) r == evalTerm t r
+evalLiftedC r t = evalC r (liftToC t) == evalTerm r t
 
 mkCIsIdempotent :: Term n -> [Term n] -> Bool
 mkCIsIdempotent t ts = let (Terms (t1 :| ts1)) = mkC t ts

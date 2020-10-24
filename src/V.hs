@@ -38,8 +38,8 @@ instance N.SNatI n => Group (V n) where
 vmult :: C n -> V n -> V n
 vmult c = V . fmap (`sappend` c) . vComp
 
-evalV :: N.SNatI n => V n -> C n -> C n
-evalV (V v) c = foldr (<>) mempty . V.zipWith sappend v . fmap (\n -> partialD n c) $ V.universe
+evalV :: N.SNatI n => C n -> V n -> C n
+evalV c v = foldr (<>) mempty . V.zipWith sappend (vComp v) . fmap (partialD c) $ V.universe
 
 unitV :: N.SNatI n => V n
 unitV = V . V.repeat $ sempty
@@ -64,10 +64,10 @@ vpmult :: N.SNatI n => Rational -> Vp n -> Vp n
 vpmult d (Vp p v) = Vp p $ fmap (* d) v
 
 vToVp :: V n -> R n -> Vp n
-vToVp v r = Vp r . fmap (\c -> evalC c r) . vComp $ v
+vToVp v r = Vp r . fmap (evalC r) . vComp $ v
 
-evalVp :: N.SNatI n => Vp n -> C n -> Rational
-evalVp (Vp p v) c = dotProduct (R v) . R . fmap (\n -> evalC (partialD n c) p) $ V.universe
+evalVp :: N.SNatI n => C n -> Vp n -> Rational
+evalVp c (Vp p v) = dotProduct (R v) . R . fmap (evalC p . partialD c) $ V.universe
 
 unitVp :: N.SNatI n => Vp n
 unitVp = vToVp unitV mempty
