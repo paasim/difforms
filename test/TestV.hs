@@ -70,6 +70,51 @@ leibnizRuleV c1 c2 v =
   evalV (c1 `sappend` c2) v == (evalV c1 v `sappend` c2) <>
                                  (c1 `sappend` evalV c2 v)
 
+
+type LieBracketDef n = C n -> TwoV n
+lieBracketDef :: N.SNatI n => LieBracketDef n
+lieBracketDef c v w =
+  evalV c (lieBracket v w) == evalV (evalV c w) v
+
+
+type LieBracketLeibniz n = C n -> C n -> TwoV n
+lieBracketLeibniz :: N.SNatI n => LieBracketLeibniz n
+lieBracketLeibniz c1 c2 v w = let vw = lieBracket v w
+  in evalV (c1 `sappend` c2) vw == (evalV c1 vw `sappend` c2) <>
+                                   (c1 `sappend` evalV c2 vw)
+
+type LieBracketAntisymmetric n = C n -> TwoV n
+lieBracketAntisymmetric :: N.SNatI n => LieBracketAntisymmetric n
+lieBracketAntisymmetric c v w =
+  evalV c (lieBracket v w) == ginv (evalV c (lieBracket w v))
+
+type LieBracketBilinear1 n = Rational -> Rational -> C n -> ThreeV n
+lieBracketBilinear1 :: N.SNatI n => LieBracketBilinear1 n
+lieBracketBilinear1 r1 r2 c v u w =
+  let r1u = vmult (amult r1 sempty) u
+      r2v = vmult (amult r2 sempty) v
+      r1uw = vmult (amult r1 sempty) (lieBracket u w)
+      r2vw = vmult (amult r2 sempty) (lieBracket v w)
+  in evalV c (lieBracket (r1u <> r2v) w) == evalV c (r1uw <> r2vw)
+
+type LieBracketBilinear2 n = Rational -> Rational -> C n -> ThreeV n
+lieBracketBilinear2 :: N.SNatI n => LieBracketBilinear2 n
+lieBracketBilinear2 r1 r2 c u v w =
+  let r1v = vmult (amult r1 sempty) v
+      r2w = vmult (amult r2 sempty) w
+      r1uv = vmult (amult r1 sempty) (lieBracket u v)
+      r2uw = vmult (amult r2 sempty) (lieBracket u w)
+  in evalV c (lieBracket u (r1v <> r2w)) == evalV c (r1uv <> r2uw)
+
+type LieBracketJacobi n = C n -> ThreeV n
+lieBracketJacobi :: N.SNatI n => LieBracketJacobi n
+lieBracketJacobi c u v w =
+  let uvw = lieBracket u $ lieBracket v w
+      vwu = lieBracket v $ lieBracket w u
+      wuv = lieBracket w $ lieBracket u v
+  in evalV c (uvw <> vwu <> wuv) == evalV c mempty
+
+
 -- Vp
 type OneVp n   = Vec n Rational -> R n -> Bool
 type TwoVp n   = Vec n Rational -> OneVp n
@@ -168,6 +213,18 @@ main = do
     (linearMultV :: LinearMultV N.Nat3)
   qc "Leibniz rule"
     (leibnizRuleV :: LeibnizRuleV N.Nat3)
+
+  putStrLn "Tests for Lie bracket:"
+  qc "Lie bracket satisfies the definition"
+    (lieBracketLeibniz :: LieBracketLeibniz N.Nat3)
+  qc "Lie bracket antisymmetric"
+    (lieBracketAntisymmetric :: LieBracketAntisymmetric N.Nat3)
+  qc "Lie bracket linear in the first argument"
+    (lieBracketBilinear1 :: LieBracketBilinear1 N.Nat3)
+  qc "Lie bracket linear in the second argument"
+    (lieBracketBilinear2 :: LieBracketBilinear2 N.Nat3)
+  qc "Lie bracket satisfies jacobi identity"
+    (lieBracketJacobi :: LieBracketJacobi N.Nat3)
 
   putStrLn "Tests for Vp:"
   qc "semigroup symmetric"

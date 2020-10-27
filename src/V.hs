@@ -7,7 +7,7 @@ import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
 import Data.Type.Nat ( Nat(..) )
 import qualified Data.Type.Nat as N
-import qualified Data.List as L ( intercalate )
+import qualified Data.List as L
 import Test.QuickCheck
 import Typeclasses
 import R
@@ -44,6 +44,10 @@ evalV c v = foldr (<>) mempty . V.zipWith sappend (vComp v) . fmap (partialD c) 
 unitV :: N.SNatI n => V n
 unitV = V . V.repeat $ sempty
 
+lieBracket :: N.SNatI n => V n -> V n -> V n
+lieBracket (V v) (V w) = (V . fmap (pdSum v) $ w) <> ginv (V . fmap (pdSum w) $ v) where
+  pdSum :: N.SNatI n => Vec n (C n) -> C n -> C n -- weighted sum of partial derivatives
+  pdSum v c = foldr (<>) mempty . V.zipWith sappend v . fmap (partialD c) $ V.universe
 
 -- Tangent vector at point p
 data Vp n = Vp { vpP :: R n, vpV :: Vec n Rational }

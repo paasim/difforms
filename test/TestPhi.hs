@@ -13,7 +13,7 @@ import TestHelpers
 type PullbackDef n m = Phi n m -> C m -> R n -> Bool
 pullbackDef :: (N.SNatI n, N.SNatI m) => PullbackDef n m
 pullbackDef phi cm rn = evalC rn (pullback phi cm) ==
-                         evalC (evalPhi rn phi) cm 
+                         evalC (evalPhi rn phi) cm
 
 
 type PushforwardDef n m = Phi n m -> Vp n -> C m -> Bool
