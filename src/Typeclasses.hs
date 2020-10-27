@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
 module Typeclasses where
 
 -- Definitions of Semirng, Semiring and Algebra
@@ -8,11 +9,8 @@ module Typeclasses where
 class Monoid g => Group g where
   ginv :: g -> g
 
--- Assumes that the group is abelian,
--- sums distribute in Rational and g
--- and 1 is multiplicative identity
-class Group g => ModuleQ g where
-  mqmult :: Rational -> g -> g
+class Group g => Module g q | g -> q where
+  mmult :: q -> g -> g
 
 -- The monoid is assumed to commute,
 -- ie. (a <> b) <> c = a <> (b <> c)

@@ -34,8 +34,8 @@ instance N.SNatI n => Monoid (R n) where
 instance N.SNatI n => Group (R n) where
   ginv = R . fmap negate . x
 
-instance N.SNatI n => ModuleQ (R n) where
-  mqmult d = R . fmap (* d) . x
+instance N.SNatI n => Module (R n) Rational where
+  mmult d = R . fmap (* d) . x
 
 dotProduct :: N.SNatI n => R n -> R n -> Rational
 dotProduct r r' = sum . V.toList $ V.zipWith (*) (x r) (x r')

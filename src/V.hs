@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module V where
 
 import qualified Data.Map.Strict as M
@@ -31,12 +32,8 @@ instance N.SNatI n => Monoid (V n) where
 instance N.SNatI n => Group (V n) where
   ginv = V . fmap ginv . vComp
 
--- V n is a module over C n
--- Assumes that the group is abelian,
--- sums distribute in C n and g
--- and there is multiplicative identity in Cn
-vmult :: C n -> V n -> V n
-vmult c = V . fmap (`sappend` c) . vComp
+instance N.SNatI n => Module (V n) (C n) where
+  mmult c = V . fmap (`sappend` c) . vComp
 
 evalV :: N.SNatI n => C n -> V n -> C n
 evalV c v = foldr (<>) mempty . V.zipWith sappend (vComp v) . fmap (partialD c) $ V.universe

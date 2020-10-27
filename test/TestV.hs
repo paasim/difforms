@@ -40,21 +40,21 @@ groupInvV c v = evalV c v <> evalV c (ginv v) == evalV c mempty
 type ModuleAddDistributes1V n = C n -> C n -> C n -> OneV n
 moduleAddDistributes1V :: N.SNatI n => ModuleAddDistributes1V n
 moduleAddDistributes1V c1 c2 c v =
-  evalV c (vmult c1 v <> vmult c2 v) == evalV c (vmult (c1 <> c2) v)
+  evalV c (mmult c1 v <> mmult c2 v) == evalV c (mmult (c1 <> c2) v)
 
 type ModuleAddDistributes2V n = C n -> C n -> TwoV n
 moduleAddDistributes2V :: N.SNatI n => ModuleAddDistributes2V n
 moduleAddDistributes2V c' c v1 v2 =
-  evalV c (vmult c' v1 <> vmult c' v2) == evalV c (vmult c' (v1 <> v2))
+  evalV c (mmult c' v1 <> mmult c' v2) == evalV c (mmult c' (v1 <> v2))
 
 type ModuleMultAssociatesV n = C n -> C n -> C n -> OneV n
 moduleMultAssociatesV :: N.SNatI n => ModuleMultAssociatesV n
 moduleMultAssociatesV c1 c2 c v =
-  evalV c (vmult c1 (vmult c2 v)) == evalV c (vmult (c1 `sappend` c2) v)
+  evalV c (mmult c1 (mmult c2 v)) == evalV c (mmult (c1 `sappend` c2) v)
 
 type Module1IdV n = C n -> OneV n
 module1IdV :: N.SNatI n => Module1IdV n
-module1IdV c v = evalV c (vmult sempty v) == evalV c v
+module1IdV c v = evalV c (mmult sempty v) == evalV c v
 
 type LinearAddV n = C n -> C n -> OneV n
 linearAddV :: N.SNatI n => LinearAddV n
@@ -91,19 +91,19 @@ lieBracketAntisymmetric c v w =
 type LieBracketBilinear1 n = Rational -> Rational -> C n -> ThreeV n
 lieBracketBilinear1 :: N.SNatI n => LieBracketBilinear1 n
 lieBracketBilinear1 r1 r2 c v u w =
-  let r1u = vmult (amult r1 sempty) u
-      r2v = vmult (amult r2 sempty) v
-      r1uw = vmult (amult r1 sempty) (lieBracket u w)
-      r2vw = vmult (amult r2 sempty) (lieBracket v w)
+  let r1u = mmult (amult r1 sempty) u
+      r2v = mmult (amult r2 sempty) v
+      r1uw = mmult (amult r1 sempty) (lieBracket u w)
+      r2vw = mmult (amult r2 sempty) (lieBracket v w)
   in evalV c (lieBracket (r1u <> r2v) w) == evalV c (r1uw <> r2vw)
 
 type LieBracketBilinear2 n = Rational -> Rational -> C n -> ThreeV n
 lieBracketBilinear2 :: N.SNatI n => LieBracketBilinear2 n
 lieBracketBilinear2 r1 r2 c u v w =
-  let r1v = vmult (amult r1 sempty) v
-      r2w = vmult (amult r2 sempty) w
-      r1uv = vmult (amult r1 sempty) (lieBracket u v)
-      r2uw = vmult (amult r2 sempty) (lieBracket u w)
+  let r1v = mmult (amult r1 sempty) v
+      r2w = mmult (amult r2 sempty) w
+      r1uv = mmult (amult r1 sempty) (lieBracket u v)
+      r2uw = mmult (amult r2 sempty) (lieBracket u w)
   in evalV c (lieBracket u (r1v <> r2w)) == evalV c (r1uv <> r2uw)
 
 type LieBracketJacobi n = C n -> ThreeV n

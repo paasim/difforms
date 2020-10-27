@@ -28,18 +28,18 @@ groupInv r = r <> ginv r == mempty && ginv r <> r == mempty
 
 moduleAddDistributes1 :: N.SNatI n => Rational -> Rational -> OneR n
 moduleAddDistributes1 d1 d2 r =
-  mqmult d1 r <> mqmult d2 r == mqmult (d1+d2) r
+  mmult d1 r <> mmult d2 r == mmult (d1+d2) r
 
 moduleAddDistributes2 :: N.SNatI n => Rational -> TwoR n
 moduleAddDistributes2 d r1 r2 =
-  mqmult d r1 <> mqmult d r2 == mqmult d (r1 <> r2)
+  mmult d r1 <> mmult d r2 == mmult d (r1 <> r2)
 
 moduleMultAssociates :: N.SNatI n => Rational -> Rational -> OneR n
 moduleMultAssociates d1 d2 r =
-  mqmult d1 (mqmult d2 r) == mqmult (d1*d2) r
+  mmult d1 (mmult d2 r) == mmult (d1*d2) r
 
 module1Id :: N.SNatI n => OneR n
-module1Id r = mqmult 1 r == r
+module1Id r = mmult (1 :: Rational) r == r
 
 -- Matrices
 
