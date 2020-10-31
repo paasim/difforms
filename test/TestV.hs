@@ -12,8 +12,6 @@ import C
 import V
 import TestHelpers
 
--- Nothing to test with variables
-
 -- V
 type OneV n   = V n -> Bool
 type TwoV n   = V n -> OneV n
