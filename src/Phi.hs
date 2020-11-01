@@ -56,3 +56,5 @@ instance (N.SNatI n, N.SNatI m) => Show (Phi n m) where
 jacobianAt :: N.SNatI n => Phi n m -> R n -> Mat n m
 jacobianAt phi rn = transpose . Mat . fmap (gradientAt rn) . phiComp $ phi
 
+-- pullbacks and pushforwards for Omega/OmegaP missing
+

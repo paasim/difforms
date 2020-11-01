@@ -8,6 +8,7 @@ import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
 import Data.Type.Nat ( Nat(..) )
 import Data.Fin ( Fin(..) )
+import qualified Data.Fin as F
 import qualified Data.Type.Nat as N
 import qualified Data.List as L
 import Data.List.NonEmpty ( NonEmpty(..), (<|) )
@@ -106,8 +107,8 @@ mkOmega ct cts = neToOmega . filterZeros . sumSimilarTerms . NE.sort $ ct :| cts
   neToOmega (ct :| cts) = Coterms ct cts
 
 
-ctMultByC :: C n -> Coterm n -> Coterm n
-ctMultByC c' (Coterm cvs c) = Coterm cvs (sappend c c')
+ctMult :: C n -> Coterm n -> Coterm n
+ctMult c' (Coterm cvs c) = Coterm cvs (sappend c c')
 
 
 liftToOmega :: Coterm n -> Omega n
@@ -121,10 +122,10 @@ instance Monoid (Omega n) where
 
 -- Being (Abelian) Group and Semiring makes it a Ring
 instance Group (Omega n) where
-  ginv (Coterms t ts) = mkOmega (negateCoterm t) $ fmap negateCoterm ts
+  ginv (Coterms ct cts) = mkOmega (negateCoterm ct) $ fmap negateCoterm cts
 
 instance Module (Omega n) (C n) where
-  mmult c (Coterms ct cts) = mkOmega (ctMultByC c ct) $ fmap (ctMultByC c) cts
+  mmult c (Coterms ct cts) = mkOmega (ctMult c ct) $ fmap (ctMult c) cts
 
 extProdCovar :: Omega n -> Covar n -> Omega n
 extProdCovar (Coterms ct cts) cv =
@@ -135,10 +136,10 @@ extProdCoterm (Coterm cvs c) v = mmult c $ foldl extProdCovar v cvs
 
 exteriorProduct :: Omega n -> Omega n -> Omega n
 exteriorProduct (Coterms ct cts) v =
-  foldr extProdCoterm (extProdCoterm ct v) cts
+  foldr (<>) (extProdCoterm ct v) $ fmap (\ct -> extProdCoterm ct v) cts
 
 evalOmega :: Vec n (V n) -> Omega n -> C n
-evalOmega vs (Coterms ct cts) = foldr (<>) mempty . fmap (evalCoterm vs) $ ct:cts
+evalOmega vs (Coterms ct cts) = foldr (<>) (evalCoterm vs ct) . fmap (evalCoterm vs) $ cts
 
 instance N.SNatI n => Arbitrary (Omega n) where
   arbitrary = mkOmega <$> arbitrary <*> resize 4 (listOf arbitrary)
@@ -154,7 +155,4 @@ dCoterm ct = foldr (<>) mempty . fmap (liftToOmega . dCotermBy ct) $ V.universe
 -- exterior derivative
 d :: N.SNatI n => Omega n -> Omega n
 d (Coterms ct cts) = foldr (<>) (dCoterm ct) $ fmap dCoterm cts
-
-d' :: N.SNatI n => C n -> Omega n
-d' = d . liftToOmega . liftToCoterm
 

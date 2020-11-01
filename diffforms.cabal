@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 30af993810d8488d29a3cbba728965cb8dd1a83efc99ba11559cc09045a0097d
+-- hash: 2331cf72bbdfd6fdfc203b341adf4b6b1c3eb45f7fb99414b1fe331e9b47c455
 
 name:           diffforms
-version:        0.3.0.0
+version:        0.4.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/diffforms#readme>
 homepage:       https://github.com/githubuser/diffforms#readme
 bug-reports:    https://github.com/githubuser/diffforms/issues
@@ -30,6 +30,7 @@ library
       C
       Examples
       Omega
+      OmegaP
       Phi
       R
       Typeclasses
