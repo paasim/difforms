@@ -2,12 +2,10 @@
 {-# LANGUAGE DataKinds #-}
 module C where
 
+import Data.Fin ( Fin(..) )
+import Data.Type.Nat ( Nat(..), SNatI )
 import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
-import Data.Type.Nat ( Nat(..) )
-import qualified Data.Type.Nat as N
-import Data.Fin ( Fin(..) )
-import qualified Data.Fin as F
 import Data.List.NonEmpty ( NonEmpty(..), (<|) )
 import qualified Data.List.NonEmpty as NE
 import qualified Data.List as L
@@ -29,7 +27,7 @@ instance Show (Var n) where
 evalVar :: R n -> Var n -> Rational
 evalVar r (Var ind exp) = (x r V.! ind) ^ (exp + 1)
 
-instance N.SNatI n => Arbitrary (Var n) where
+instance SNatI n => Arbitrary (Var n) where
   arbitrary = Var <$> (elements . V.toList $ V.universe)
                   <*> elements [0..5]
 
@@ -76,7 +74,7 @@ instance Ord (Term n) where
     (LT, _)     -> True
     (GT, _)     -> False
 
-instance N.SNatI n => Arbitrary (Term n) where
+instance SNatI n => Arbitrary (Term n) where
   -- in order to prevent oveflow when evaluating terms
   arbitrary = mkTerm <$> genSimpleRational <*> resize 2 (listOf arbitrary)
 
@@ -124,7 +122,7 @@ instance Show (C n) where
   show (Terms (t :| []))   = show t
   show (Terms (t :| rest)) = show t <> " + " <> (L.intercalate " + " . fmap show $ rest)
 
-instance N.SNatI n => Arbitrary (C n) where
+instance SNatI n => Arbitrary (C n) where
   -- in order to prevent oveflow when evaluating terms
   arbitrary = mkC <$> arbitrary <*> resize 4 (listOf arbitrary)
 
@@ -177,9 +175,9 @@ partialD :: C n -> Fin n -> C n
 partialD (Terms (t1 :| []))    n = partialDTerm t1 n
 partialD (Terms (t1 :| t2:ts)) n = partialDTerm t1 n <> partialD (Terms (t2 :| ts)) n
 
-gradient :: N.SNatI n => C n -> Vec n (C n)
+gradient :: SNatI n => C n -> Vec n (C n)
 gradient c = fmap (partialD c) V.universe
 
-gradientAt :: N.SNatI n => R n -> C n -> R n
+gradientAt :: SNatI n => R n -> C n -> R n
 gradientAt rn = R . fmap (evalC rn) . gradient
 

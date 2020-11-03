@@ -3,18 +3,14 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module OmegaP where
 
-import qualified Data.Map.Strict as M
-import Data.Vec.Lazy ( Vec(..) )
-import qualified Data.Vec.Lazy as V
-import Data.Type.Nat ( Nat(..) )
 import Data.Fin ( Fin(..) )
-import qualified Data.Fin as F
-import qualified Data.Type.Nat as N
+import Data.Type.Nat ( Nat(..), Plus, SNatI )
+import Data.Vec.Lazy ( Vec(..) )
+import Data.Type.Nat.LE ( LE(..) )
+import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
 import Data.List.NonEmpty ( NonEmpty(..), (<|) )
 import qualified Data.List.NonEmpty as NE
-import Data.Type.Nat.LE ( LE(..) )
-import Data.Set ( Set )
 import qualified Data.Set as S
 import Data.Maybe ( fromMaybe )
 import Test.QuickCheck
@@ -72,7 +68,7 @@ ctpMult _  ZeroCotermP     = ZeroCotermP
 ctpMult c' (CotermP cvs c) = mkCotermP cvs $ sappend c' c
 
 -- "semigroupoid" multiplication
-cotermPMappend :: CotermP p1 n -> CotermP p2 n -> CotermP (N.Plus p1 p2) n
+cotermPMappend :: CotermP p1 n -> CotermP p2 n -> CotermP (Plus p1 p2) n
 cotermPMappend ZeroCotermP _ = ZeroCotermP
 cotermPMappend _ ZeroCotermP = ZeroCotermP
 cotermPMappend (CotermP cvs c) (CotermP cvs' c') = mkCotermP (cvs V.++ cvs') $ sappend c c'
@@ -84,7 +80,7 @@ cotermPMempty = liftToCotermP sempty
 liftToCotermP :: C n -> CotermP Z n
 liftToCotermP = CotermP VNil
 
-instance (N.SNatI p, N.SNatI n) => Arbitrary (CotermP p n) where
+instance (SNatI p, SNatI n) => Arbitrary (CotermP p n) where
   -- in order to prevent oveflow when evaluating terms
   arbitrary = mkCotermP <$> resize 2 arbitrary <*> arbitrary
 
@@ -121,11 +117,11 @@ instance Module (OmegaP p n) (C n) where
 liftToOmegaP :: CotermP p n -> OmegaP p n
 liftToOmegaP ctp = mkOmegaP ctp []
 
-extProdCotermP :: CotermP p1 n -> OmegaP p2 n -> OmegaP (N.Plus p1 p2) n
+extProdCotermP :: CotermP p1 n -> OmegaP p2 n -> OmegaP (Plus p1 p2) n
 extProdCotermP ctp' (CotermPs ctp ctps) =
   mkOmegaP (cotermPMappend ctp' ctp) $ fmap (cotermPMappend ctp') ctps
 
-exteriorProductP :: OmegaP p1 n -> OmegaP p2 n -> OmegaP (N.Plus p1 p2) n
+exteriorProductP :: OmegaP p1 n -> OmegaP p2 n -> OmegaP (Plus p1 p2) n
 exteriorProductP (CotermPs ctp ctps) op =
   foldr (<>) (extProdCotermP ctp op) . fmap (\ctp -> extProdCotermP ctp op) $ ctps
 
@@ -136,20 +132,20 @@ evalOmegaP vs (CotermPs ctp ctps) =
 --exteriorProduct' :: OmegaP p n -> Omega n -> Omega n
 --exteriorProduct' op = exteriorProduct (omegaPToOmega op)
 
-instance (N.SNatI p, N.SNatI n) => Arbitrary (OmegaP p n) where
+instance (SNatI p, SNatI n) => Arbitrary (OmegaP p n) where
   arbitrary = mkOmegaP <$> arbitrary <*> resize 4 (listOf arbitrary)
 
 dCotermPBy :: CotermP p n -> Covar n -> CotermP (S p) n
 dCotermPBy ZeroCotermP     _ = ZeroCotermP
 dCotermPBy (CotermP cvs c) cv = mkCotermP (cv ::: cvs) (partialD c . covarDim $ cv)
 
-dCotermP :: N.SNatI n => CotermP p n -> OmegaP (S p) n
+dCotermP :: SNatI n => CotermP p n -> OmegaP (S p) n
 dCotermP ctp = foldr (<>) mempty . fmap (liftToOmegaP . dCotermPBy ctp . Covar) $ V.universe
 
-dP :: N.SNatI n => OmegaP p n -> OmegaP (S p) n
+dP :: SNatI n => OmegaP p n -> OmegaP (S p) n
 dP (CotermPs ctp ctps) = foldr (<>) (dCotermP ctp) $ fmap dCotermP ctps
 
-d0 :: N.SNatI n => C n -> OmegaP (S Z) n
+d0 :: SNatI n => C n -> OmegaP (S Z) n
 d0 = dP . liftToOmegaP . liftToCotermP
 
 -- conversions between CotermP and Coterm and Omegap and Omega
@@ -157,7 +153,7 @@ cotermPToCoterm :: CotermP p n -> Coterm n
 cotermPToCoterm ZeroCotermP = mkCoterm mempty []
 cotermPToCoterm (CotermP cvs c) = mkCoterm c . V.toList $ cvs
 
-cotermToCotermP :: N.SNatI p => Coterm n -> CotermP p n
+cotermToCotermP :: SNatI p => Coterm n -> CotermP p n
 cotermToCotermP (Coterm cvs c) = case V.fromList . S.toList $ cvs of
   (Just cvs') -> mkCotermP cvs' c
   Nothing     -> ZeroCotermP
@@ -165,6 +161,6 @@ cotermToCotermP (Coterm cvs c) = case V.fromList . S.toList $ cvs of
 omegaPToOmega :: OmegaP p n -> Omega n
 omegaPToOmega (CotermPs ctp ctps) = mkOmega (cotermPToCoterm ctp) $ fmap cotermPToCoterm ctps
 
-omegaToOmegaP :: N.SNatI p => Omega n -> OmegaP p n
+omegaToOmegaP :: SNatI p => Omega n -> OmegaP p n
 omegaToOmegaP (Coterms ct cts) = mkOmegaP (cotermToCotermP ct) $ fmap cotermToCotermP cts
 

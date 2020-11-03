@@ -3,13 +3,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Omega where
 
-import qualified Data.Map.Strict as M
+import Data.Fin ( Fin(..) )
+import Data.Type.Nat ( Nat(..), SNatI )
 import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
-import Data.Type.Nat ( Nat(..) )
-import Data.Fin ( Fin(..) )
-import qualified Data.Fin as F
-import qualified Data.Type.Nat as N
 import qualified Data.List as L
 import Data.List.NonEmpty ( NonEmpty(..), (<|) )
 import qualified Data.List.NonEmpty as NE
@@ -32,7 +29,7 @@ instance Show (Covar n) where
 evalCovar :: V n -> Covar n -> C n
 evalCovar v (Covar n) = vComp v V.! n
 
-instance N.SNatI n => Arbitrary (Covar n) where
+instance SNatI n => Arbitrary (Covar n) where
   arbitrary = Covar <$> (elements . V.toList $ V.universe)
 
 
@@ -82,7 +79,7 @@ instance Monoid (Coterm n) where
 negateCoterm :: Coterm n -> Coterm n
 negateCoterm (Coterm cvs c) = Coterm cvs $ ginv c
 
-instance N.SNatI n => Arbitrary (Coterm n) where
+instance SNatI n => Arbitrary (Coterm n) where
   -- in order to prevent oveflow when evaluating terms
   arbitrary = mkCoterm <$> arbitrary
                        <*> resize 2 (listOf arbitrary)
@@ -137,7 +134,7 @@ evalOmega :: Vec n (V n) -> Omega n -> C n
 evalOmega vs (Coterms ct cts) =
   foldr (<>) (evalCoterm vs ct) . fmap (evalCoterm vs) $ cts
 
-instance N.SNatI n => Arbitrary (Omega n) where
+instance SNatI n => Arbitrary (Omega n) where
   arbitrary = mkOmega <$> arbitrary <*> resize 4 (listOf arbitrary)
 
 dCotermBy :: Coterm n -> Fin n -> Coterm n
@@ -145,10 +142,10 @@ dCotermBy ct n =
   let (Coterm cvs' c') = prependCovar (Covar n) ct
   in Coterm cvs' $ partialD c' n
 
-dCoterm :: N.SNatI n => Coterm n -> Omega n
+dCoterm :: SNatI n => Coterm n -> Omega n
 dCoterm ct = foldr (<>) mempty . fmap (liftToOmega . dCotermBy ct) $ V.universe
 
 -- exterior derivative
-d :: N.SNatI n => Omega n -> Omega n
+d :: SNatI n => Omega n -> Omega n
 d (Coterms ct cts) = foldr (<>) (dCoterm ct) $ fmap dCoterm cts
 
