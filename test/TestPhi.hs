@@ -49,7 +49,7 @@ pushforwardMult phi r vp c = evalVp c (vpmult r . pushforward phi $ vp)
 
 main :: IO ()
 main = do
-  putStrLn "tests for Phi:"
+  putStrLn "Tests for Phi:"
   qc "pullback works as expected"
     (pullbackDef :: PullbackDef N.Nat3 N.Nat2)
   qc "pushforward works as expected"

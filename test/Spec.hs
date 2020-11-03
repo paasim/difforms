@@ -10,9 +10,14 @@ import TestOmegaP
 main :: IO ()
 main = do
   mainR
+  putStrLn ""
   mainC
+  putStrLn ""
   mainV
-  mainPhi
+  putStrLn ""
   mainOmega
+  putStrLn ""
   mainOmegaP
+  putStrLn ""
+  mainPhi
 
