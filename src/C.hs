@@ -9,7 +9,6 @@ import qualified Data.Vec.Lazy as V
 import Data.List.NonEmpty ( NonEmpty(..), (<|) )
 import qualified Data.List.NonEmpty as NE
 import qualified Data.List as L
-import Data.Function ( on )
 import Data.Maybe ( fromMaybe )
 import Test.QuickCheck
 import Typeclasses
@@ -33,63 +32,52 @@ evalVar r (Var ind exp) = (x r V.! ind) ^ (exp + 1)
 
 
 -- A product of variables with a coefficient
-data Term n = Term { termCoeff :: Rational, termVars :: [Var n] }
+data Term n = Term { termVars :: [Var n], termCoeff :: Rational } deriving (Eq, Ord)
 
 instance Show (Term n) where
-  show (Term d []) = show d
-  show (Term d l)  = "(" <> show d <> ")*" <> (L.intercalate "*" . fmap show $ l)
-
-instance Eq (Term n) where
-  (Term 0 _) == (Term 0 _) = True
-  (Term d l) == (Term d' l') = d == d' && ((==) `on` L.sort) l l'
-
-instance Ord (Term n) where
-  (Term 0 _) <= (Term 0 []) = True
-  (Term 0 []) <= (Term 0 _) = True
-  (Term d l) <= (Term d' l') = case (compare l l', d <= d') of
-    (EQ, dComp) -> dComp
-    (LT, _)     -> True
-    (GT, _)     -> False
+  show (Term [] d) = show d
+  show (Term vs d)  = "(" <> show d <> ")*" <> (L.intercalate "*" . fmap show $ vs)
 
 -- the monoid action on term(s) is multiplication, not sum
 instance Semigroup (Term n) where
-  (Term 0 _) <> (Term _ _)   = liftToTerm 0
-  (Term _ _) <> (Term 0 _)   = liftToTerm 0
-  (Term d l) <> (Term d' l') = mkTerm (d*d') $ l <> l'
+  (Term _ 0) <> (Term _ _)   = liftToTerm 0
+  (Term _ _) <> (Term _ 0)   = liftToTerm 0
+  (Term vs d) <> (Term vs' d') = mkTerm (vs <> vs') $ d*d'
 
 instance Monoid (Term n) where
   mempty = liftToTerm 1
 
 instance SNatI n => Arbitrary (Term n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkTerm <$> genSimpleRational <*> resize 2 (listOf arbitrary)
+  arbitrary = mkTerm <$> resize 2 (listOf arbitrary)
+                     <*> genSimpleRational
 
 liftToTerm :: Rational -> Term n
-liftToTerm a = Term a []
+liftToTerm a = Term [] a
 
 -- A 'smart constructor' that removes variables
 -- when the coefficient is zero, combines variables
 -- with same dimension and sorts the variables
 -- in ascending order for simpler comparison and printing
-mkTerm :: Rational -> [Var n] -> Term n
-mkTerm 0 _ = liftToTerm 0
-mkTerm d l = Term d . multiplySimilarTerms . L.sort $ l where
+mkTerm :: [Var n] -> Rational -> Term n
+mkTerm _ 0 = liftToTerm 0
+mkTerm vs d = Term (multiplySimilarTerms . L.sort $ vs) d where
     -- [x, x, y] -> [x^2, y]
   multiplySimilarTerms :: [Var n] -> [Var n]
   multiplySimilarTerms []                                 = []
   multiplySimilarTerms [t]                                = [t]
-  multiplySimilarTerms (Var n1 exp1 : Var n2 exp2 : rest) = if n1 == n2
+  multiplySimilarTerms (Var n1 exp1 : Var n2 exp2 : vs) = if n1 == n2
     -- +1 is because of the shifted representation for the exponents
-    then multiplySimilarTerms $ Var n1 (exp1+exp2+1) : rest
-    else Var n1 exp1 : multiplySimilarTerms (Var n2 exp2 : rest)
+    then multiplySimilarTerms $ Var n1 (exp1+exp2+1) : vs
+    else Var n1 exp1 : multiplySimilarTerms (Var n2 exp2 : vs)
 
 evalTerm :: R n -> Term n -> Rational
-evalTerm _ (Term d [])     = d
-evalTerm r (Term d (v:vs)) = evalVar r v * evalTerm r (Term d vs)
+evalTerm _ (Term [] d)     = d
+evalTerm r (Term (v:vs) d) = evalVar r v * evalTerm r (Term vs d)
 
 -- needed to make terms group
 negateTerm :: Term n -> Term n
-negateTerm (Term d l) = Term (negate d) l
+negateTerm (Term vs d) = Term vs (negate d)
 
 
 -- A sum of nonzero term(s), ie. polynomials as terms is of the form
@@ -139,9 +127,9 @@ mkC t ts = Terms . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
   -- [2xy^2, -5xy^2, 3x] -> [-3xy^2, 3x]
   sumSimilarTerms :: NonEmpty (Term n) -> NonEmpty (Term n)
   sumSimilarTerms (t :| [])       = t :| []
-  sumSimilarTerms (Term d l :| Term d' l' : ts) = if ((==) `on` L.sort) l l'
-    then sumSimilarTerms $ Term (d+d') l :| ts
-    else Term d l <| sumSimilarTerms (Term d' l' :| ts)
+  sumSimilarTerms (Term vs d :| Term vs' d' : ts) = if ((==) `on` L.sort) vs vs'
+    then sumSimilarTerms $ mkTerm vs (d+d') :| ts
+    else Term vs d <| sumSimilarTerms (Term vs' d' :| ts)
   -- remove all terms with 0 as coefficient but
   -- if the result is an empty list, keep one
   filterZeros :: NonEmpty (Term n) -> NonEmpty (Term n)
@@ -153,16 +141,16 @@ evalC r (Terms (t1 :| t2:ts)) = evalTerm r t1 + evalC r (Terms $ t2 :| ts)
 
 -- not endomap due to term not containing sums
 partialDTerm :: Term n -> Fin n -> C n
-partialDTerm (Term _ []) n = liftToC . liftToTerm $ 0
-partialDTerm (Term d (Var ind exp : rest)) n =
-  let f = liftToC $ Term 1 [Var ind exp]
-      g = liftToC $ Term d rest
+partialDTerm (Term [] _) n = liftToC . liftToTerm $ 0
+partialDTerm (Term (Var ind exp : vs) d) n =
+  let f = liftToC $ Term [Var ind exp] 1
+      g = liftToC $ Term vs d
       df = case (n == ind, exp == 0) of
         (False, _)   -> liftToC . liftToTerm $ 0
         (True, True) -> liftToC . liftToTerm $ 1
         -- exp+1 because exp is one lower than the exponent
-        (True, False) -> liftToC . Term (fromIntegral exp + 1) $ [Var ind (exp-1)]
-      dg = partialDTerm (Term d rest) n
+        (True, False) -> liftToC . Term [Var ind (exp-1)] $ fromIntegral exp + 1
+      dg = partialDTerm (Term vs d) n
   -- f, g, df are Term, dg is a C
   in sappend df g <> sappend f dg
 
