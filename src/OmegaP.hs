@@ -11,7 +11,6 @@ import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
 import Data.List.NonEmpty ( NonEmpty(..), (<|) )
 import qualified Data.List.NonEmpty as NE
-import qualified Data.Set as S
 import Data.Maybe ( fromMaybe )
 import Test.QuickCheck
 import Typeclasses
@@ -54,8 +53,8 @@ liftToCotermP :: C n -> CotermP Z n
 liftToCotermP = CotermP VNil
 
 mkCotermP :: Vec p (Covar n) -> C n -> CotermP p n
-mkCotermP cvs c = let (isEven, cvs') = bubble cvs
-  in case (c == mempty || not (uniqSorted cvs'), isEven) of
+mkCotermP cvs c = let (isEven, cvs') = bubbleVec cvs
+  in case (c == mempty || not (uniqSortedVec cvs'), isEven) of
     (True,  _) -> ZeroCotermP
     (_,  True) -> CotermP cvs' c
     (_, False) -> negateCotermP $ CotermP cvs' c
@@ -69,20 +68,22 @@ negateCotermP :: CotermP p n -> CotermP p n
 negateCotermP ZeroCotermP     = ZeroCotermP
 negateCotermP (CotermP cvs c) = CotermP cvs $ ginv c
 
-insert' :: Ord a => a -> Bool -> Vec n a -> (Bool, Vec (S n) a)
-insert' a b VNil = (b, a ::: VNil)
-insert' a b (a' ::: rest) = if a < a'
+insertVec :: Ord a => a -> Bool -> Vec n a -> (Bool, Vec (S n) a)
+insertVec a b VNil = (b, a ::: VNil)
+insertVec a b (a' ::: rest) = if a < a'
   then (b, a ::: a' ::: rest)
-  else fmap (a' :::) $ insert' a (not b) rest
+  else fmap (a' :::) $ insertVec a (not b) rest
 
-bubble :: Ord a => Vec n a -> (Bool, Vec n a)
-bubble VNil = (True, VNil)
-bubble (a ::: as) = uncurry (insert' a) $ bubble as
+-- bubblesort, but keeps track of whether the
+-- sorted list is an even permutation
+bubbleVec :: Ord a => Vec n a -> (Bool, Vec n a)
+bubbleVec VNil = (True, VNil)
+bubbleVec (a ::: as) = uncurry (insertVec a) $ bubbleVec as
 
-uniqSorted :: Eq a => Vec n a -> Bool
-uniqSorted VNil = True
-uniqSorted (a ::: VNil) = True
-uniqSorted (a1 ::: a2 ::: rest) = a1 /= a2 && uniqSorted (a2 ::: rest)
+uniqSortedVec :: Eq a => Vec n a -> Bool
+uniqSortedVec VNil                 = True
+uniqSortedVec (a ::: VNil)         = True
+uniqSortedVec (a1 ::: a2 ::: rest) = a1 /= a2 && uniqSortedVec (a2 ::: rest)
 
 
 data OmegaP p n = CotermPs (CotermP p n) [CotermP p n]
@@ -150,11 +151,11 @@ d0 = dP . liftToOmegaP . liftToCotermP
 
 -- conversions between CotermP and Coterm and Omegap and Omega
 cotermPToCoterm :: CotermP p n -> Coterm n
-cotermPToCoterm ZeroCotermP = mkCoterm mempty []
-cotermPToCoterm (CotermP cvs c) = mkCoterm c . V.toList $ cvs
+cotermPToCoterm ZeroCotermP = mkCoterm [] mempty
+cotermPToCoterm (CotermP cvs c) = mkCoterm (V.toList cvs) c
 
 cotermToCotermP :: SNatI p => Coterm n -> CotermP p n
-cotermToCotermP (Coterm cvs c) = case V.fromList . S.toList $ cvs of
+cotermToCotermP (Coterm cvs c) = case V.fromList cvs of
   (Just cvs') -> mkCotermP cvs' c
   Nothing     -> ZeroCotermP
 

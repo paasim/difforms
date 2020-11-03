@@ -10,8 +10,6 @@ import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
 import Data.List.NonEmpty ( NonEmpty(..), (<|) )
 import qualified Data.List.NonEmpty as NE
-import Data.Set ( Set )
-import qualified Data.Set as S
 import Data.Maybe ( fromMaybe )
 import Test.QuickCheck
 import Typeclasses
@@ -34,49 +32,64 @@ evalCovar v (Covar n) = vComp v V.! n
 
 
 -- (Exterior) products of covars with a C n coefficient
-data Coterm n = Coterm { cotermVars :: Set (Covar n), cotermCoeff :: C n } deriving (Eq, Ord)
+data Coterm n = Coterm { cotermVars :: [Covar n], cotermCoeff :: C n } deriving (Eq, Ord)
 
 instance Show (Coterm n) where
-  show (Coterm cvs c) = if S.null cvs
-    then show c
-    else "(" <> show c <> ")*" <> (L.intercalate "*" . fmap show  . S.toList $ cvs)
+  show (Coterm []  c) = show c
+  show (Coterm cvs c) =
+    "(" <> show c <> ")*" <> (L.intercalate "*" . fmap show $ cvs)
 
 instance Semigroup (Coterm n) where
-  (Coterm cvs c) <> (Coterm cvs' c') =
-    mkCoterm (c `sappend` c') (S.toList cvs <> S.toList cvs')
+  (Coterm cvs c) <> (Coterm cvs' c') = mkCoterm (cvs <> cvs') $ c `sappend` c'
 
 instance Monoid (Coterm n) where
   mempty = liftToCoterm mempty
 
 -- module multiplication (though group missing)
 ctMult :: C n -> Coterm n -> Coterm n
-ctMult c' (Coterm cvs c) = Coterm cvs (sappend c c')
+ctMult c' (Coterm cvs c) = mkCoterm cvs (sappend c c')
 
 instance SNatI n => Arbitrary (Coterm n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkCoterm <$> arbitrary
-                       <*> resize 2 (listOf arbitrary)
+  arbitrary = mkCoterm <$> resize 2 (listOf arbitrary)
+                       <*> arbitrary
 
 liftToCoterm :: C n -> Coterm n
-liftToCoterm c = Coterm S.empty c
+liftToCoterm c = Coterm [] c
 
-mkCoterm :: C n -> [Covar n] -> Coterm n
-mkCoterm c = foldr prependCovar (liftToCoterm c)
+mkCoterm :: [Covar n] -> C n -> Coterm n
+--foldr prependCovar (liftToCoterm c)
+mkCoterm cvs c = let (isEven, cvs') = bubbleList cvs
+  in case (c == mempty || not (uniqSortedList cvs'), isEven) of
+    (True,  _) -> mempty
+    (_,  True) -> Coterm cvs' c
+    (_, False) -> negateCoterm $ Coterm cvs' c
 
 evalCoterm :: Vec n (V n) -> Coterm n -> C n
 evalCoterm vs (Coterm cvs c') = sappend c' . foldr sappend sempty
-  $ zipWith evalCovar (V.toList vs) (S.toList cvs)
+  $ zipWith evalCovar (V.toList vs) cvs
 
 negateCoterm :: Coterm n -> Coterm n
 negateCoterm (Coterm cvs c) = Coterm cvs $ ginv c
 
-prependCovar :: Covar n -> Coterm n -> Coterm n
-prependCovar cv (Coterm cvs c) = if S.member cv cvs
-  then Coterm S.empty mempty
-  else let cvs' = S.insert cv cvs
-           ind = S.findIndex cv cvs'
-           c' = if mod ind 2 == 0 then c else ginv c
-       in Coterm cvs' c'
+insertList :: Ord a => a -> Bool -> [a] -> (Bool, [a])
+insertList a' b []     = (b, [a'])
+insertList a' b (a:as) = if a' < a
+  then (b, a' : a : as)
+  else fmap (a :) $ insertList a' (not b) as
+
+bubbleList :: Ord a => [a] -> (Bool, [a])
+bubbleList []       = (True, [])
+bubbleList (a : as) = uncurry (insertList a) $ bubbleList as
+
+uniqSortedList :: Eq a => [a] -> Bool
+uniqSortedList []         = True
+uniqSortedList [a]        = True
+uniqSortedList (a1:a2:as) = a1 /= a2 && uniqSortedList (a2:as)
+
+listMember :: Eq a => a -> [a] -> Bool
+listMember a' [] = False
+listMember a' (a:as) = a' == a || listMember a' as
 
 
 -- n-forms from n-manifold, hopefully these could be refactored
@@ -111,7 +124,7 @@ mkOmega ct cts = neToOmega . filterZeros . sumSimilarTerms . NE.sort $ ct :| cts
   sumSimilarTerms :: NonEmpty (Coterm n) -> NonEmpty (Coterm n)
   sumSimilarTerms (ct :| [])       = ct :| []
   sumSimilarTerms (Coterm cvs c :| Coterm cvs' c' : cts) = if cvs == cvs'
-    then sumSimilarTerms $ mkCoterm (c <> c') (S.toList cvs) :| cts
+    then sumSimilarTerms $ mkCoterm cvs (c <> c') :| cts
     else Coterm cvs c <| sumSimilarTerms (Coterm cvs' c' :| cts)
   -- remove all terms with 0 as coefficient but
   -- if the result is an empty list, keep one
@@ -131,13 +144,13 @@ exteriorProduct :: Omega n -> Omega n -> Omega n
 exteriorProduct (Coterms ct cts) o =
   foldr (<>) (extProdCoterm ct o) . fmap (\ct -> extProdCoterm ct o) $ cts
 
-dCotermBy :: Coterm n -> Fin n -> Coterm n
-dCotermBy ct n =
-  let (Coterm cvs' c') = prependCovar (Covar n) ct
-  in Coterm cvs' $ partialD c' n
+dCotermBy :: Coterm n -> Covar n -> Coterm n
+dCotermBy (Coterm cvs c) cv =
+  let (Coterm cvs' c') = mkCoterm (cv:cvs) c
+  in Coterm cvs' . partialD c' . covarDim $ cv
 
 dCoterm :: SNatI n => Coterm n -> Omega n
-dCoterm ct = foldr (<>) mempty . fmap (liftToOmega . dCotermBy ct) $ V.universe
+dCoterm ct = foldr (<>) mempty . fmap (liftToOmega . dCotermBy ct . Covar) $ V.universe
 
 -- exterior derivative
 d :: SNatI n => Omega n -> Omega n
