@@ -35,9 +35,17 @@ instance SNatI n => Group (R n) where
 instance SNatI n => Module (R n) Rational where
   mmult d = R . fmap (* d) . x
 
+instance SNatI n => Arbitrary (R n) where
+  arbitrary = R <$> genSimpleRationalVec
+
 dotProduct :: SNatI n => R n -> R n -> Rational
 dotProduct r r' = sum . V.toList $ V.zipWith (*) (x r) (x r')
 
+coordVec :: SNatI n => Fin n -> R n
+coordVec n = R . V.imap (\i _ -> if i == n then 1 else 0) $ V.universe
+
+-- needed for generating simpler rational numbers for easier debugging
+-- these should be complex enough for checking the properties...
 newtype SimpleRational = SimpleRational (Int, Word)
 
 instance Arbitrary SimpleRational where
@@ -54,25 +62,20 @@ genSimpleRational = simpleRationalToRational <$> arbitrary
 genSimpleRationalVec :: SNatI n => Gen (Vec n Rational)
 genSimpleRationalVec = fmap (fmap simpleRationalToRational) arbitrary
 
-instance SNatI n => Arbitrary (R n) where
-  arbitrary = R <$> genSimpleRationalVec
-
-coordVec :: SNatI n => Fin n -> R n
-coordVec n = R . V.imap (\i _ -> if i == n then 1 else 0) $ V.universe
 
 -- Mat n m, Matrices as lists of m-dimensional real numbers
 newtype Mat n m = Mat { mat :: Vec n (R m) } deriving (Eq, Ord)
-
-printRows :: Vec m (R n) -> String
-printRows VNil                 = ""
-printRows (r1 ::: VNil)        = show r1
-printRows (r1 ::: r2 ::: rest) = show r1 <> ",\n " <> printRows (r2 ::: rest)
 
 instance Show (Mat n m) where
   show (Mat mat) = "[" <> printRows mat <> "]"
 
 instance (SNatI n, SNatI m) => Arbitrary (Mat n m) where
   arbitrary = Mat <$> arbitrary
+
+printRows :: Vec m (R n) -> String
+printRows VNil                 = ""
+printRows (r1 ::: VNil)        = show r1
+printRows (r1 ::: r2 ::: rest) = show r1 <> ",\n " <> printRows (r2 ::: rest)
 
 appendRow :: R m -> Mat n m -> Mat (S n) m
 appendRow rm (Mat m) = Mat $ rm ::: m

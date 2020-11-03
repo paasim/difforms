@@ -24,17 +24,46 @@ import Omega
 -- ZeroCotermP corresponds to the case where C n is mempty
 data CotermP p n = ZeroCotermP | CotermP (Vec p (Covar n)) (C n) deriving (Eq, Ord)
 
-evalCotermP :: Vec p (V n) -> CotermP p n -> C n
-evalCotermP vs ZeroCotermP = mempty
-evalCotermP vs (CotermP cvs c) = sappend c . foldr sappend sempty
-  $ V.zipWith evalCovar vs cvs
-
 instance Show (CotermP p n) where
   show ZeroCotermP = show (mempty :: C n)
   show (CotermP VNil c) =
     "(" <> show c <> ")"
   show (CotermP cvs c) =
     "(" <> show c <> ")*" <> (L.intercalate "*" . fmap show  . V.toList $ cvs)
+
+-- "semigroupoid" multiplication
+cotermPMappend :: CotermP p1 n -> CotermP p2 n -> CotermP (Plus p1 p2) n
+cotermPMappend ZeroCotermP _ = ZeroCotermP
+cotermPMappend _ ZeroCotermP = ZeroCotermP
+cotermPMappend (CotermP cvs c) (CotermP cvs' c') = mkCotermP (cvs V.++ cvs') $ sappend c c'
+
+-- multiplicative identity
+cotermPMempty :: CotermP Z n
+cotermPMempty = liftToCotermP sempty
+
+-- module multiplication (though group missing)
+ctpMult :: C n -> CotermP p n -> CotermP p n
+ctpMult _  ZeroCotermP     = ZeroCotermP
+ctpMult c' (CotermP cvs c) = mkCotermP cvs $ sappend c' c
+
+instance (SNatI p, SNatI n) => Arbitrary (CotermP p n) where
+  -- in order to prevent oveflow when evaluating terms
+  arbitrary = mkCotermP <$> resize 2 arbitrary <*> arbitrary
+
+liftToCotermP :: C n -> CotermP Z n
+liftToCotermP = CotermP VNil
+
+mkCotermP :: Vec p (Covar n) -> C n -> CotermP p n
+mkCotermP cvs c = let (isEven, cvs') = bubble cvs
+  in case (c == mempty || not (uniqSorted cvs'), isEven) of
+    (True,  _) -> ZeroCotermP
+    (_,  True) -> CotermP cvs' c
+    (_, False) -> negateCotermP $ CotermP cvs' c
+
+evalCotermP :: Vec p (V n) -> CotermP p n -> C n
+evalCotermP vs ZeroCotermP = mempty
+evalCotermP vs (CotermP cvs c) = sappend c . foldr sappend sempty
+  $ V.zipWith evalCovar vs cvs
 
 negateCotermP :: CotermP p n -> CotermP p n
 negateCotermP ZeroCotermP     = ZeroCotermP
@@ -55,37 +84,30 @@ uniqSorted VNil = True
 uniqSorted (a ::: VNil) = True
 uniqSorted (a1 ::: a2 ::: rest) = a1 /= a2 && uniqSorted (a2 ::: rest)
 
-mkCotermP :: Vec p (Covar n) -> C n -> CotermP p n
-mkCotermP cvs c = let (isEven, cvs') = bubble cvs
-  in case (c == mempty || not (uniqSorted cvs'), isEven) of
-    (True,  _) -> ZeroCotermP
-    (_,  True) -> CotermP cvs' c
-    (_, False) -> negateCotermP $ CotermP cvs' c
-
--- module multiplication
-ctpMult :: C n -> CotermP p n -> CotermP p n
-ctpMult _  ZeroCotermP     = ZeroCotermP
-ctpMult c' (CotermP cvs c) = mkCotermP cvs $ sappend c' c
-
--- "semigroupoid" multiplication
-cotermPMappend :: CotermP p1 n -> CotermP p2 n -> CotermP (Plus p1 p2) n
-cotermPMappend ZeroCotermP _ = ZeroCotermP
-cotermPMappend _ ZeroCotermP = ZeroCotermP
-cotermPMappend (CotermP cvs c) (CotermP cvs' c') = mkCotermP (cvs V.++ cvs') $ sappend c c'
-
--- multiplicative identity
-cotermPMempty :: CotermP Z n
-cotermPMempty = liftToCotermP sempty
-
-liftToCotermP :: C n -> CotermP Z n
-liftToCotermP = CotermP VNil
-
-instance (SNatI p, SNatI n) => Arbitrary (CotermP p n) where
-  -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkCotermP <$> resize 2 arbitrary <*> arbitrary
-
 
 data OmegaP p n = CotermPs (CotermP p n) [CotermP p n] deriving Show
+
+instance Semigroup (OmegaP p n) where
+  (CotermPs ctp ctps) <> (CotermPs ctp' ctps') = mkOmegaP ctp $ ctps <> (ctp':ctps')
+
+instance Monoid (OmegaP p n) where
+  mempty = CotermPs ZeroCotermP []
+
+instance Group (OmegaP p n) where
+  ginv (CotermPs ctp ctps) = mkOmegaP (negateCotermP ctp) $ fmap negateCotermP ctps
+
+instance Module (OmegaP p n) (C n) where
+  mmult c (CotermPs ctp ctps) = mkOmegaP (ctpMult c ctp) $ fmap (ctpMult c) ctps
+
+instance (SNatI p, SNatI n) => Arbitrary (OmegaP p n) where
+  arbitrary = mkOmegaP <$> arbitrary <*> resize 4 (listOf arbitrary)
+
+liftToOmegaP :: CotermP p n -> OmegaP p n
+liftToOmegaP ctp = mkOmegaP ctp []
+
+evalOmegaP :: Vec p (V n) -> OmegaP p n -> C n
+evalOmegaP vs (CotermPs ctp ctps) =
+  foldr (<>) (evalCotermP vs ctp) . fmap (evalCotermP vs) $ ctps
 
 mkOmegaP :: CotermP p n -> [CotermP p n] -> OmegaP p n
 -- filter twice so that sumSimilarTerms does not have to consider ZeroCotermP
@@ -102,21 +124,6 @@ mkOmegaP ctp = neToOmegaP . filterZeros . sumSimilarTerms . filterZeros . NE.sor
   filterZeros = fromMaybe (ZeroCotermP :| []) . NE.nonEmpty . NE.filter (ZeroCotermP /=)
   neToOmegaP (ctp :| ctps) = CotermPs ctp ctps
 
-instance Semigroup (OmegaP p n) where
-  (CotermPs ctp ctps) <> (CotermPs ctp' ctps') = mkOmegaP ctp $ ctps <> (ctp':ctps')
-
-instance Monoid (OmegaP p n) where
-  mempty = CotermPs ZeroCotermP []
-
-instance Group (OmegaP p n) where
-  ginv (CotermPs ctp ctps) = mkOmegaP (negateCotermP ctp) $ fmap negateCotermP ctps
-
-instance Module (OmegaP p n) (C n) where
-  mmult c (CotermPs ctp ctps) = mkOmegaP (ctpMult c ctp) $ fmap (ctpMult c) ctps
-
-liftToOmegaP :: CotermP p n -> OmegaP p n
-liftToOmegaP ctp = mkOmegaP ctp []
-
 extProdCotermP :: CotermP p1 n -> OmegaP p2 n -> OmegaP (Plus p1 p2) n
 extProdCotermP ctp' (CotermPs ctp ctps) =
   mkOmegaP (cotermPMappend ctp' ctp) $ fmap (cotermPMappend ctp') ctps
@@ -124,16 +131,6 @@ extProdCotermP ctp' (CotermPs ctp ctps) =
 exteriorProductP :: OmegaP p1 n -> OmegaP p2 n -> OmegaP (Plus p1 p2) n
 exteriorProductP (CotermPs ctp ctps) op =
   foldr (<>) (extProdCotermP ctp op) . fmap (\ctp -> extProdCotermP ctp op) $ ctps
-
-evalOmegaP :: Vec p (V n) -> OmegaP p n -> C n
-evalOmegaP vs (CotermPs ctp ctps) =
-  foldr (<>) (evalCotermP vs ctp) . fmap (evalCotermP vs) $ ctps
-
---exteriorProduct' :: OmegaP p n -> Omega n -> Omega n
---exteriorProduct' op = exteriorProduct (omegaPToOmega op)
-
-instance (SNatI p, SNatI n) => Arbitrary (OmegaP p n) where
-  arbitrary = mkOmegaP <$> arbitrary <*> resize 4 (listOf arbitrary)
 
 dCotermPBy :: CotermP p n -> Covar n -> CotermP (S p) n
 dCotermPBy ZeroCotermP     _ = ZeroCotermP

@@ -20,6 +20,9 @@ newtype Phi n m = Phi { phiComp :: Vec m (C n) } deriving (Eq, Ord)
 instance (SNatI n, SNatI m) => Arbitrary (Phi n m) where
   arbitrary = Phi <$> arbitrary
 
+instance (SNatI n, SNatI m) => Show (Phi n m) where
+  show = unlines . V.toList . fmap (uncurry showStrAsFun) . V.zipWith (,) V.universe . fmap show . phiComp
+
 evalPhi :: R n -> Phi n m -> R m
 evalPhi rn = R . fmap (evalC rn) . phiComp
 
@@ -33,7 +36,6 @@ pullback :: Phi n m -> C m -> C n
 pullback phi (Terms (t1 :| []))    = pullbackTerm phi t1
 pullback phi (Terms (t1 :| t2:ts)) = pullbackTerm phi t1 <> pullback phi (Terms $ t2 :| ts)
 
-
 pushforward :: (SNatI n, SNatI m) => Phi n m -> Vp n -> Vp m
 pushforward phi (Vp p v) = Vp (evalPhi p phi)
                               (x $ vecMatProduct (R v) (jacobianAt phi p))
@@ -46,9 +48,6 @@ compPhi phiNM = Phi . fmap (pullback phiNM) . phiComp
 
 showStrAsFun :: Fin n -> String -> String
 showStrAsFun n str = str <> " -> x_" <> show n
-
-instance (SNatI n, SNatI m) => Show (Phi n m) where
-  show = unlines . V.toList . fmap (uncurry showStrAsFun) . V.zipWith (,) V.universe . fmap show . phiComp
 
 jacobianAt :: SNatI n => Phi n m -> R n -> Mat n m
 jacobianAt phi rn = transpose . Mat . fmap (gradientAt rn) . phiComp $ phi

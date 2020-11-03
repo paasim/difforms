@@ -44,6 +44,7 @@ lieBracket (V v) (V w) = (V . fmap (pdSum v) $ w) <> ginv (V . fmap (pdSum w) $ 
   pdSum :: SNatI n => Vec n (C n) -> C n -> C n -- weighted sum of partial derivatives
   pdSum v c = foldr (<>) mempty . V.zipWith sappend v . fmap (partialD c) $ V.universe
 
+
 -- Tangent vector at point p
 data Vp n = Vp { vpP :: R n, vpV :: Vec n Rational }
 
@@ -52,6 +53,9 @@ instance Show (Vp n) where
 
 instance SNatI n => Arbitrary (Vp n) where
   arbitrary = Vp <$> arbitrary <*> genSimpleRationalVec
+
+evalVp :: SNatI n => C n -> Vp n -> Rational
+evalVp c (Vp p v) = dotProduct (R v) . R . fmap (evalC p . partialD c) $ V.universe
 
 -- basically a semigroup but this may fail if the base points are not the same...
 -- Vp n is a semigroup only when the basepoints are the same
@@ -64,9 +68,6 @@ vpmult d (Vp p v) = Vp p $ fmap (* d) v
 
 vToVp :: V n -> R n -> Vp n
 vToVp v r = Vp r . fmap (evalC r) . vComp $ v
-
-evalVp :: SNatI n => C n -> Vp n -> Rational
-evalVp c (Vp p v) = dotProduct (R v) . R . fmap (evalC p . partialD c) $ V.universe
 
 unitVp :: SNatI n => Vp n
 unitVp = vToVp unitV mempty

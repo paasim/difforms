@@ -26,34 +26,49 @@ newtype Covar n = Covar { covarDim :: Fin n } deriving (Eq, Ord)
 instance Show (Covar n) where
   show (Covar n)    = "d_" <> show n
 
-evalCovar :: V n -> Covar n -> C n
-evalCovar v (Covar n) = vComp v V.! n
-
 instance SNatI n => Arbitrary (Covar n) where
   arbitrary = Covar <$> (elements . V.toList $ V.universe)
+
+evalCovar :: V n -> Covar n -> C n
+evalCovar v (Covar n) = vComp v V.! n
 
 
 -- (Exterior) products of covars with a C n coefficient
 data Coterm n = Coterm { cotermVars :: Set (Covar n), cotermCoeff :: C n } deriving (Eq, Ord)
-
-evalCoterm :: Vec n (V n) -> Coterm n -> C n
-evalCoterm vs (Coterm cvs c') = sappend c' . foldr sappend sempty
-  $ zipWith evalCovar (V.toList vs) (S.toList cvs)
 
 instance Show (Coterm n) where
   show (Coterm cvs c) = if S.null cvs
     then show c
     else "(" <> show c <> ")*" <> (L.intercalate "*" . fmap show  . S.toList $ cvs)
 
-appendCovar :: Covar n -> Coterm n -> Coterm n
-appendCovar cv (Coterm cvs c) = if S.member cv cvs
-  then Coterm S.empty mempty
-  else let cvs' = S.insert cv cvs
-           ind = S.findIndex cv cvs'
-           len = S.size cvs'
-           -- determine whether adding cv corresponds to odd or even # of swaps
-           c' = if mod (len - 1 - ind) 2 == 0 then c else ginv c
-       in Coterm cvs' c'
+instance Semigroup (Coterm n) where
+  (Coterm cvs c) <> (Coterm cvs' c') =
+    mkCoterm (c `sappend` c') (S.toList cvs <> S.toList cvs')
+
+instance Monoid (Coterm n) where
+  mempty = liftToCoterm mempty
+
+-- module multiplication (though group missing)
+ctMult :: C n -> Coterm n -> Coterm n
+ctMult c' (Coterm cvs c) = Coterm cvs (sappend c c')
+
+instance SNatI n => Arbitrary (Coterm n) where
+  -- in order to prevent oveflow when evaluating terms
+  arbitrary = mkCoterm <$> arbitrary
+                       <*> resize 2 (listOf arbitrary)
+
+liftToCoterm :: C n -> Coterm n
+liftToCoterm c = Coterm S.empty c
+
+mkCoterm :: C n -> [Covar n] -> Coterm n
+mkCoterm c = foldr prependCovar (liftToCoterm c)
+
+evalCoterm :: Vec n (V n) -> Coterm n -> C n
+evalCoterm vs (Coterm cvs c') = sappend c' . foldr sappend sempty
+  $ zipWith evalCovar (V.toList vs) (S.toList cvs)
+
+negateCoterm :: Coterm n -> Coterm n
+negateCoterm (Coterm cvs c) = Coterm cvs $ ginv c
 
 prependCovar :: Covar n -> Coterm n -> Coterm n
 prependCovar cv (Coterm cvs c) = if S.member cv cvs
@@ -64,30 +79,28 @@ prependCovar cv (Coterm cvs c) = if S.member cv cvs
        in Coterm cvs' c'
 
 
-mkCoterm :: C n -> [Covar n] -> Coterm n
-mkCoterm c = foldr appendCovar (liftToCoterm c) . reverse
-
-liftToCoterm :: C n -> Coterm n
-liftToCoterm c = Coterm S.empty c
-
-instance Semigroup (Coterm n) where
-  (Coterm cvs c) <> (Coterm cvs' c') = mkCoterm (c `sappend` c') (S.toList cvs <> S.toList cvs')
-
-instance Monoid (Coterm n) where
-  mempty = liftToCoterm mempty
-
-negateCoterm :: Coterm n -> Coterm n
-negateCoterm (Coterm cvs c) = Coterm cvs $ ginv c
-
-instance SNatI n => Arbitrary (Coterm n) where
-  -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkCoterm <$> arbitrary
-                       <*> resize 2 (listOf arbitrary)
-
-
 -- n-forms from n-manifold, hopefully these could be refactored
 -- into p-forms (where p<=n)
 data Omega n = Coterms (Coterm n) [Coterm n] deriving Show
+
+instance Semigroup (Omega n) where
+  (Coterms c1 c1s) <> (Coterms c2 c2s) = mkOmega c1 $ c1s <> (c2 : c2s)
+
+instance Monoid (Omega n) where
+  mempty = liftToOmega . liftToCoterm $ mempty
+
+-- Being (Abelian) Group and Semiring makes it a Ring
+instance Group (Omega n) where
+  ginv (Coterms ct cts) = mkOmega (negateCoterm ct) $ fmap negateCoterm cts
+
+instance Module (Omega n) (C n) where
+  mmult c (Coterms ct cts) = mkOmega (ctMult c ct) $ fmap (ctMult c) cts
+
+instance SNatI n => Arbitrary (Omega n) where
+  arbitrary = mkOmega <$> arbitrary <*> resize 4 (listOf arbitrary)
+
+liftToOmega :: Coterm n -> Omega n
+liftToOmega ct = mkOmega ct []
 
 mkOmega :: Coterm n -> [Coterm n] -> Omega n
 mkOmega ct cts = neToOmega . filterZeros . sumSimilarTerms . NE.sort $ ct :| cts where
@@ -103,24 +116,9 @@ mkOmega ct cts = neToOmega . filterZeros . sumSimilarTerms . NE.sort $ ct :| cts
   filterZeros = fromMaybe (mempty :| []) . NE.nonEmpty . NE.filter (mempty /=)
   neToOmega (ct :| cts) = Coterms ct cts
 
-ctMult :: C n -> Coterm n -> Coterm n
-ctMult c' (Coterm cvs c) = Coterm cvs (sappend c c')
-
-liftToOmega :: Coterm n -> Omega n
-liftToOmega ct = mkOmega ct []
-
-instance Semigroup (Omega n) where
-  (Coterms c1 c1s) <> (Coterms c2 c2s) = mkOmega c1 $ c1s <> (c2 : c2s)
-
-instance Monoid (Omega n) where
-  mempty = liftToOmega . liftToCoterm $ mempty
-
--- Being (Abelian) Group and Semiring makes it a Ring
-instance Group (Omega n) where
-  ginv (Coterms ct cts) = mkOmega (negateCoterm ct) $ fmap negateCoterm cts
-
-instance Module (Omega n) (C n) where
-  mmult c (Coterms ct cts) = mkOmega (ctMult c ct) $ fmap (ctMult c) cts
+evalOmega :: Vec n (V n) -> Omega n -> C n
+evalOmega vs (Coterms ct cts) =
+  foldr (<>) (evalCoterm vs ct) . fmap (evalCoterm vs) $ cts
 
 extProdCoterm :: Coterm n -> Omega n -> Omega n
 extProdCoterm ct' (Coterms ct cts) =
@@ -129,13 +127,6 @@ extProdCoterm ct' (Coterms ct cts) =
 exteriorProduct :: Omega n -> Omega n -> Omega n
 exteriorProduct (Coterms ct cts) o =
   foldr (<>) (extProdCoterm ct o) . fmap (\ct -> extProdCoterm ct o) $ cts
-
-evalOmega :: Vec n (V n) -> Omega n -> C n
-evalOmega vs (Coterms ct cts) =
-  foldr (<>) (evalCoterm vs ct) . fmap (evalCoterm vs) $ cts
-
-instance SNatI n => Arbitrary (Omega n) where
-  arbitrary = mkOmega <$> arbitrary <*> resize 4 (listOf arbitrary)
 
 dCotermBy :: Coterm n -> Fin n -> Coterm n
 dCotermBy ct n =
