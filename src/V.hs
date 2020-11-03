@@ -16,7 +16,7 @@ import C
 newtype V n = V { vComp :: Vec n (C n) }
 
 instance Show (V n) where
-  show (V v) = "V: (" <> (L.intercalate ", " . V.toList . fmap show $ v) <> ")"
+  show (V cs) = "V: " <> (L.intercalate "\n   " . V.toList . fmap show $ cs)
 
 instance SNatI n => Arbitrary (V n) where
   arbitrary = V <$> arbitrary

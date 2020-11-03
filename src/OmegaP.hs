@@ -85,7 +85,10 @@ uniqSorted (a ::: VNil) = True
 uniqSorted (a1 ::: a2 ::: rest) = a1 /= a2 && uniqSorted (a2 ::: rest)
 
 
-data OmegaP p n = CotermPs (CotermP p n) [CotermP p n] deriving Show
+data OmegaP p n = CotermPs (CotermP p n) [CotermP p n]
+
+instance Show (OmegaP p n) where
+  show (CotermPs ctp ctps) = (<>) "OmegaP:\n  " . L.intercalate "\n + " . fmap show $ ctp:ctps
 
 instance Semigroup (OmegaP p n) where
   (CotermPs ctp ctps) <> (CotermPs ctp' ctps') = mkOmegaP ctp $ ctps <> (ctp':ctps')

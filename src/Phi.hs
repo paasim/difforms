@@ -7,6 +7,7 @@ import Data.Type.Nat ( Nat(..), SNatI )
 import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
 import Data.List.NonEmpty ( NonEmpty(..) )
+import qualified Data.List as L
 import Test.QuickCheck
 import Typeclasses
 import R
@@ -17,11 +18,13 @@ import V
 -- phi_i defines how i:th element depends on R n
 newtype Phi n m = Phi { phiComp :: Vec m (C n) } deriving (Eq, Ord)
 
+instance (SNatI n, SNatI m) => Show (Phi n m) where
+  show = (<>) "Phi:\n " . L.intercalate "\n "
+       . V.toList . fmap (uncurry showStrAsFun)
+       . V.zipWith (,) V.universe . fmap show . phiComp
+
 instance (SNatI n, SNatI m) => Arbitrary (Phi n m) where
   arbitrary = Phi <$> arbitrary
-
-instance (SNatI n, SNatI m) => Show (Phi n m) where
-  show = unlines . V.toList . fmap (uncurry showStrAsFun) . V.zipWith (,) V.universe . fmap show . phiComp
 
 evalPhi :: R n -> Phi n m -> R m
 evalPhi rn = R . fmap (evalC rn) . phiComp

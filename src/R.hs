@@ -67,7 +67,7 @@ genSimpleRationalVec = fmap (fmap simpleRationalToRational) arbitrary
 newtype Mat n m = Mat { mat :: Vec n (R m) } deriving (Eq, Ord)
 
 instance Show (Mat n m) where
-  show (Mat mat) = "[" <> printRows mat <> "]"
+  show (Mat mat) = "Mat:\n[" <> printRows mat <> "]"
 
 instance (SNatI n, SNatI m) => Arbitrary (Mat n m) where
   arbitrary = Mat <$> arbitrary

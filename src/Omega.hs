@@ -81,7 +81,10 @@ prependCovar cv (Coterm cvs c) = if S.member cv cvs
 
 -- n-forms from n-manifold, hopefully these could be refactored
 -- into p-forms (where p<=n)
-data Omega n = Coterms (Coterm n) [Coterm n] deriving Show
+data Omega n = Coterms (Coterm n) [Coterm n]
+
+instance Show (Omega n) where
+  show (Coterms ct cts) = (<>) "Omega:\n  " . L.intercalate "\n + " . fmap show $ ct:cts
 
 instance Semigroup (Omega n) where
   (Coterms c1 c1s) <> (Coterms c2 c2s) = mkOmega c1 $ c1s <> (c2 : c2s)

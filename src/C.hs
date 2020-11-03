@@ -97,8 +97,8 @@ negateTerm (Term d l) = Term (negate d) l
 newtype C n = Terms (NonEmpty (Term n)) deriving (Eq, Ord)
 
 instance Show (C n) where
-  show (Terms (t :| []))   = show t
-  show (Terms (t :| rest)) = show t <> " + " <> (L.intercalate " + " . fmap show $ rest)
+  show (Terms (t :| []))   = "C: " <> show t
+  show (Terms (t :| rest)) = "C: " <> show t <> " + " <> (L.intercalate " + " . fmap show $ rest)
 
 instance SNatI n => Arbitrary (C n) where
   -- in order to prevent oveflow when evaluating terms
