@@ -82,11 +82,11 @@ negateTerm (Term vs d) = Term vs (negate d)
 
 -- A sum of nonzero term(s), ie. polynomials as terms is of the form
 -- a*x_i*...*x_j + bx_h*...*x_k + ...
-newtype C n = Terms (NonEmpty (Term n)) deriving (Eq, Ord)
+data C n = Terms (Term n) [Term n] deriving (Eq, Ord)
 
 instance Show (C n) where
-  show (Terms (t :| []))   = "C: " <> show t
-  show (Terms (t :| rest)) = "C: " <> show t <> " + " <> (L.intercalate " + " . fmap show $ rest)
+  show (Terms t [])   = "C: " <> show t
+  show (Terms t1 (t2:ts)) = "C: " <> show t1 <> " + " <> (L.intercalate " + " . fmap show $ t2:ts)
 
 instance SNatI n => Arbitrary (C n) where
   -- in order to prevent oveflow when evaluating terms
@@ -95,20 +95,21 @@ instance SNatI n => Arbitrary (C n) where
 -- the monoid action is now sum, not product as with term
 -- (this is because terms needs to be a semiring)
 instance Semigroup (C n) where
-  (Terms c1) <> (Terms c2) = let (t :| ts) = c1 <> c2 in mkC t ts
+  (Terms t ts) <> (Terms t' ts') = mkC t $ ts <> (t':ts')
 
 instance Monoid (C n) where
   mempty = liftToC . liftToTerm $ 0
 
 -- Being (Abelian) Group and Semiring makes it a Ring
 instance Group (C n) where
-  ginv (Terms (t :| ts)) = mkC (negateTerm t) (fmap negateTerm ts)
+  ginv (Terms t ts) = mkC (negateTerm t) (fmap negateTerm ts)
 
 -- this is the multiplication, kind of confusingly corresponding
 -- to monoid action of term
 instance Semirng (C n) where
   -- could use mempty term here but this is easier to read
-  sappend (Terms c1) (Terms c2) = let (t :| ts) = ((<>) <$> c1 <*> c2) in mkC t ts
+  sappend (Terms t1 t1s) (Terms t2 t2s) =
+    let (t :| ts) = (<>) <$> t1 :| t1s <*> t2 :| t2s in mkC t ts
 
 instance Semiring (C n) where
   sempty = liftToC . liftToTerm $ 1
@@ -117,27 +118,28 @@ instance Algebra (C n) where
   amult a = sappend (liftToC . liftToTerm $ a)
 
 liftToC :: Term n -> C n
-liftToC t1 = Terms $ t1 :| []
+liftToC t1 = Terms t1 []
 
 -- A 'smart constructor' which ensures that the term(s)
 -- are in correct order, terms with common variable-part are
 -- summed together and and terms with coefficient 0 are filtered out
 mkC :: Term n -> [Term n] -> C n
-mkC t ts = Terms . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
+mkC t ts = neToC . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
   -- [2xy^2, -5xy^2, 3x] -> [-3xy^2, 3x]
   sumSimilarTerms :: NonEmpty (Term n) -> NonEmpty (Term n)
   sumSimilarTerms (t :| [])       = t :| []
-  sumSimilarTerms (Term vs d :| Term vs' d' : ts) = if ((==) `on` L.sort) vs vs'
+  sumSimilarTerms (Term vs d :| Term vs' d' : ts) = if vs == vs'
     then sumSimilarTerms $ mkTerm vs (d+d') :| ts
     else Term vs d <| sumSimilarTerms (Term vs' d' :| ts)
   -- remove all terms with 0 as coefficient but
   -- if the result is an empty list, keep one
   filterZeros :: NonEmpty (Term n) -> NonEmpty (Term n)
   filterZeros = fromMaybe (liftToTerm 0 :| []) . NE.nonEmpty . NE.filter (liftToTerm 0 /=)
+  neToC (t :| ts) = Terms t ts
 
 evalC :: R n -> C n -> Rational
-evalC r (Terms (t1 :| []))    = evalTerm r t1
-evalC r (Terms (t1 :| t2:ts)) = evalTerm r t1 + evalC r (Terms $ t2 :| ts)
+evalC r (Terms t1 [])      = evalTerm r t1
+evalC r (Terms t1 (t2:ts)) = evalTerm r t1 + evalC r (Terms t2 ts)
 
 -- not endomap due to term not containing sums
 partialDTerm :: Term n -> Fin n -> C n
@@ -157,8 +159,8 @@ partialDTerm (Term (Var ind exp : vs) d) n =
 -- these form a basis on the tangent space
 -- (this is :: Fin n -> V n)
 partialD :: C n -> Fin n -> C n
-partialD (Terms (t1 :| []))    n = partialDTerm t1 n
-partialD (Terms (t1 :| t2:ts)) n = partialDTerm t1 n <> partialD (Terms (t2 :| ts)) n
+partialD (Terms t1 [])      n = partialDTerm t1 n
+partialD (Terms t1 (t2:ts)) n = partialDTerm t1 n <> partialD (Terms t2 ts) n
 
 gradient :: SNatI n => C n -> Vec n (C n)
 gradient c = fmap (partialD c) V.universe

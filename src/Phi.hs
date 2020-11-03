@@ -36,8 +36,8 @@ pullbackTerm phi (Term (Var n exp : vs) d) =
 
 -- precomposes f with the manifold map
 pullback :: Phi n m -> C m -> C n
-pullback phi (Terms (t1 :| []))    = pullbackTerm phi t1
-pullback phi (Terms (t1 :| t2:ts)) = pullbackTerm phi t1 <> pullback phi (Terms $ t2 :| ts)
+pullback phi (Terms t1 [])      = pullbackTerm phi t1
+pullback phi (Terms t1 (t2:ts)) = pullbackTerm phi t1 <> pullback phi (Terms t2 ts)
 
 pushforward :: (SNatI n, SNatI m) => Phi n m -> Vp n -> Vp m
 pushforward phi (Vp p v) = Vp (evalPhi p phi)
