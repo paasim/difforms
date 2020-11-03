@@ -5,6 +5,7 @@ import TestC
 import TestV
 import TestPhi
 import TestOmega
+import TestOmegaP
 
 main :: IO ()
 main = do
@@ -13,4 +14,5 @@ main = do
   mainV
   mainPhi
   mainOmega
+  mainOmegaP
 

@@ -66,6 +66,34 @@ linearMultO :: N.SNatI n => LinearMultO n
 linearMultO c vs o = evalOmega vs (mmult c o) == sappend c (evalOmega vs o)
 
 
+{-
+--dd = 0
+type DLinearAdd n = Omega n -> Omega n -> Bool
+dLinearAdd :: DLinearAdd n
+dLinearAdd o1 o2 = evalOmega vs (d o1 <> d o2) == evalOmega vs (d $ o1 <> o2)
+
+type DLinearMult n = Rational -> Omega n -> Bool
+dLinearMult :: DLinearMult n
+dLinearMult r o = sappend (liftToC . liftToTerm r)
+
+type DLeibniz1 n = Rational -> C n -> Bool
+dLeibniz1 :: DLeibniz1 n
+dLeibniz1 
+
+type DLeibniz2a n = Omega n -> Omega n -> Bool
+dLeibniz2a :: DLeibniz2a n
+dLeibniz2a 
+
+type DLeibniz2b n = Omega n -> Omega n -> Bool
+dLeibniz2b :: DLeibniz2b n
+dLeibniz2b 
+
+type DdZero n = Omega n -> Bool
+ddZero :: DdZero n
+ddZero 
+-}
+
+
 main :: IO ()
 main = do
   putStrLn "Tests for Omega:"
