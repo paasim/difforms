@@ -162,7 +162,9 @@ main = do
   qc "d and dP are equal in Omega and OmegaP"
     (dEqual :: DEqual N.Nat1 N.Nat2 N.Nat4)
   qc "exteriorProduct and exteriorProductP are equal in Omega and OmegaP"
-    (extProdEqual :: ExtProdEqual N.Nat1 N.Nat1 N.Nat2)
+    (extProdEqual :: ExtProdEqual N.Nat3 N.Nat2 N.Nat6)
+  qc "exteriorProduct and exteriorProductP are equal in Omega and OmegaP"
+    (extProdEqual :: ExtProdEqual N.Nat2 N.Nat1 N.Nat6)
 
   putStrLn "Tests for OmegaP:"
   qc "semigroup symmetric"
@@ -206,9 +208,9 @@ main = do
   qc "multiplication linear"
     (dLinearMult :: DLinearMult N.Nat3)
   qc "leibniz rule1"
-    (dLeibnizRule 1 :: DLeibnizRule N.Nat0 N.Nat1)
+    (dLeibnizRule 1 :: DLeibnizRule N.Nat2 N.Nat5)
   qc "leibniz rule2"
-    (dLeibnizRule (-1) :: DLeibnizRule N.Nat1 N.Nat2)
+    (dLeibnizRule (-1) :: DLeibnizRule N.Nat3 N.Nat5)
   qc "dd = 0"
     (dTwiceZero :: DTwiceZero N.Nat3)
 

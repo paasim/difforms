@@ -129,11 +129,12 @@ exteriorProductP :: OmegaP p1 n -> OmegaP p2 n -> OmegaP (N.Plus p1 p2) n
 exteriorProductP (CotermPs ctp ctps) op =
   foldr (<>) (extProdCotermP ctp op) . fmap (\ctp -> extProdCotermP ctp op) $ ctps
 
-exteriorProduct' :: OmegaP p n -> Omega n -> Omega n
-exteriorProduct' op = exteriorProduct (omegaPToOmega op)
-
 evalOmegaP :: Vec p (V n) -> OmegaP p n -> C n
-evalOmegaP vs (CotermPs ctp ctps) = foldr (<>) mempty . fmap (evalCotermP vs) $ ctp:ctps
+evalOmegaP vs (CotermPs ctp ctps) =
+  foldr (<>) (evalCotermP vs ctp) . fmap (evalCotermP vs) $ ctps
+
+--exteriorProduct' :: OmegaP p n -> Omega n -> Omega n
+--exteriorProduct' op = exteriorProduct (omegaPToOmega op)
 
 instance (N.SNatI p, N.SNatI n) => Arbitrary (OmegaP p n) where
   arbitrary = mkOmegaP <$> arbitrary <*> resize 4 (listOf arbitrary)

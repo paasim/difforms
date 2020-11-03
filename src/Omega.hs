@@ -106,16 +106,14 @@ mkOmega ct cts = neToOmega . filterZeros . sumSimilarTerms . NE.sort $ ct :| cts
   filterZeros = fromMaybe (mempty :| []) . NE.nonEmpty . NE.filter (mempty /=)
   neToOmega (ct :| cts) = Coterms ct cts
 
-
 ctMult :: C n -> Coterm n -> Coterm n
 ctMult c' (Coterm cvs c) = Coterm cvs (sappend c c')
-
 
 liftToOmega :: Coterm n -> Omega n
 liftToOmega ct = mkOmega ct []
 
 instance Semigroup (Omega n) where
-  (Coterms c1 c1s) <> (Coterms c2 c2s) = mkOmega c1 (c1s <> (c2 : c2s))
+  (Coterms c1 c1s) <> (Coterms c2 c2s) = mkOmega c1 $ c1s <> (c2 : c2s)
 
 instance Monoid (Omega n) where
   mempty = liftToOmega . liftToCoterm $ mempty
@@ -127,19 +125,17 @@ instance Group (Omega n) where
 instance Module (Omega n) (C n) where
   mmult c (Coterms ct cts) = mkOmega (ctMult c ct) $ fmap (ctMult c) cts
 
-extProdCovar :: Omega n -> Covar n -> Omega n
-extProdCovar (Coterms ct cts) cv =
-  mkOmega (appendCovar cv ct) $ fmap (appendCovar cv) cts where
-
 extProdCoterm :: Coterm n -> Omega n -> Omega n
-extProdCoterm (Coterm cvs c) v = mmult c $ foldl extProdCovar v cvs
+extProdCoterm ct' (Coterms ct cts) =
+  mkOmega (ct' <> ct) $ fmap ((<>) ct') cts
 
 exteriorProduct :: Omega n -> Omega n -> Omega n
-exteriorProduct (Coterms ct cts) v =
-  foldr (<>) (extProdCoterm ct v) $ fmap (\ct -> extProdCoterm ct v) cts
+exteriorProduct (Coterms ct cts) o =
+  foldr (<>) (extProdCoterm ct o) . fmap (\ct -> extProdCoterm ct o) $ cts
 
 evalOmega :: Vec n (V n) -> Omega n -> C n
-evalOmega vs (Coterms ct cts) = foldr (<>) (evalCoterm vs ct) . fmap (evalCoterm vs) $ cts
+evalOmega vs (Coterms ct cts) =
+  foldr (<>) (evalCoterm vs ct) . fmap (evalCoterm vs) $ cts
 
 instance N.SNatI n => Arbitrary (Omega n) where
   arbitrary = mkOmega <$> arbitrary <*> resize 4 (listOf arbitrary)
