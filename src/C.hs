@@ -53,7 +53,7 @@ instance SNatI n => Arbitrary (Term n) where
                      <*> genSimpleRational
 
 liftToTerm :: Rational -> Term n
-liftToTerm a = Term [] a
+liftToTerm = Term []
 
 -- A 'smart constructor' that removes variables
 -- when the coefficient is zero, combines variables

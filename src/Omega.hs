@@ -55,7 +55,7 @@ instance SNatI n => Arbitrary (Coterm n) where
                        <*> arbitrary
 
 liftToCoterm :: C n -> Coterm n
-liftToCoterm c = Coterm [] c
+liftToCoterm = Coterm []
 
 mkCoterm :: [Covar n] -> C n -> Coterm n
 --foldr prependCovar (liftToCoterm c)
@@ -76,7 +76,7 @@ insertList :: Ord a => a -> Bool -> [a] -> (Bool, [a])
 insertList a' b []     = (b, [a'])
 insertList a' b (a:as) = if a' < a
   then (b, a' : a : as)
-  else fmap (a :) $ insertList a' (not b) as
+  else (a :) <$> insertList a' (not b) as
 
 bubbleList :: Ord a => [a] -> (Bool, [a])
 bubbleList []       = (True, [])
@@ -136,13 +136,13 @@ evalOmega :: Vec n (V n) -> Omega n -> C n
 evalOmega vs (Coterms ct cts) =
   foldr (<>) (evalCoterm vs ct) . fmap (evalCoterm vs) $ cts
 
-extProdCoterm :: Coterm n -> Omega n -> Omega n
-extProdCoterm ct' (Coterms ct cts) =
-  mkOmega (ct' <> ct) $ fmap ((<>) ct') cts
+extProdCoterm :: Omega n -> Coterm n -> Omega n
+extProdCoterm (Coterms ct cts) ct' =
+  mkOmega (ct' <> ct) $ fmap (ct' <>) cts
 
 exteriorProduct :: Omega n -> Omega n -> Omega n
 exteriorProduct (Coterms ct cts) o =
-  foldr (<>) (extProdCoterm ct o) . fmap (\ct -> extProdCoterm ct o) $ cts
+  foldr (<>) (extProdCoterm o ct) . fmap (extProdCoterm o) $ cts
 
 dCotermBy :: Coterm n -> Covar n -> Coterm n
 dCotermBy (Coterm cvs c) cv =

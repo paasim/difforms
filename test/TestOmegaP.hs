@@ -92,7 +92,7 @@ dEqual v1 v2 op = evalOmegaP v1 (dP op) == evalOmega (v1 V.++ v2) (d . omegaPToO
 type ExtProdEqual p1 p2 n = Vec n (V n) -> OmegaP p1 n -> OmegaP p2 n -> Bool
 extProdEqual :: ExtProdEqual p1 p2 n
 extProdEqual vs op1 op2 =
-  evalOmega vs (exteriorProduct (omegaPToOmega $ op1) (omegaPToOmega $ op2))
+  evalOmega vs (exteriorProduct (omegaPToOmega op1) (omegaPToOmega op2))
     == evalOmega vs (omegaPToOmega $ exteriorProductP op1 op2)
 
 type ExtProdSuperComm p1 p2 n = Vec n (V n) -> OmegaP p1 n -> OmegaP p2 n -> Bool
@@ -120,7 +120,7 @@ type D0LeibnizRule n = Vec N.Nat1 (V n) -> C n -> C n -> Bool
 d0LeibnizRule :: N.SNatI n => D0LeibnizRule n
 d0LeibnizRule v c1 c2 =
   evalOmegaP v (d0 $ sappend c1 c2)
-    == evalOmegaP v ((mmult c1 $ d0 c2) <> (mmult c2 $ d0 c1))
+    == evalOmegaP v (mmult c1 (d0 c2) <> mmult c2 (d0 c1))
 
 
 type DLinearAdd n = Vec n (V n) -> Omega n -> Omega n -> Bool

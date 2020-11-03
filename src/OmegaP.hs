@@ -72,7 +72,7 @@ insertVec :: Ord a => a -> Bool -> Vec n a -> (Bool, Vec (S n) a)
 insertVec a b VNil = (b, a ::: VNil)
 insertVec a b (a' ::: rest) = if a < a'
   then (b, a ::: a' ::: rest)
-  else fmap (a' :::) $ insertVec a (not b) rest
+  else (a' :::) <$> insertVec a (not b) rest
 
 -- bubblesort, but keeps track of whether the
 -- sorted list is an even permutation
@@ -128,13 +128,13 @@ mkOmegaP ctp = neToOmegaP . filterZeros . sumSimilarTerms . filterZeros . NE.sor
   filterZeros = fromMaybe (ZeroCotermP :| []) . NE.nonEmpty . NE.filter (ZeroCotermP /=)
   neToOmegaP (ctp :| ctps) = CotermPs ctp ctps
 
-extProdCotermP :: CotermP p1 n -> OmegaP p2 n -> OmegaP (Plus p1 p2) n
-extProdCotermP ctp' (CotermPs ctp ctps) =
+extProdCotermP :: OmegaP p2 n -> CotermP p1 n -> OmegaP (Plus p1 p2) n
+extProdCotermP (CotermPs ctp ctps) ctp' =
   mkOmegaP (cotermPMappend ctp' ctp) $ fmap (cotermPMappend ctp') ctps
 
 exteriorProductP :: OmegaP p1 n -> OmegaP p2 n -> OmegaP (Plus p1 p2) n
 exteriorProductP (CotermPs ctp ctps) op =
-  foldr (<>) (extProdCotermP ctp op) . fmap (\ctp -> extProdCotermP ctp op) $ ctps
+  foldr (<>) (extProdCotermP op ctp) . fmap (extProdCotermP op) $ ctps
 
 dCotermPBy :: CotermP p n -> Covar n -> CotermP (S p) n
 dCotermPBy ZeroCotermP     _ = ZeroCotermP
