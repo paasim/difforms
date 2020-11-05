@@ -59,7 +59,7 @@ jacobianAt :: SNatI n => Phi n m -> R n -> Mat n m
 jacobianAt phi rn = transpose . Mat . fmap (gradientAt rn) . phiComp $ phi
 
 jacobian :: SNatI n => Phi n m -> Vec m (Vec n (C n))
-jacobian = fmap (V . gradient) . phiComp
+jacobian = fmap gradient . phiComp
 
 jacobianToAt :: SNatI n => Vec m (Vec n (C n)) -> R n -> Mat n m
 jacobianToAt j r = transpose . Mat . fmap (R . fmap (evalC r)) $ j
