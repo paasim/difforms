@@ -108,19 +108,19 @@ extProdSuperComm r vs op1 op2 =
 type D0LinearAdd n = Vec N.Nat1 (V n) -> C n -> C n -> Bool
 d0LinearAdd :: N.SNatI n => D0LinearAdd n
 d0LinearAdd v c1 c2 =
-  evalOmegaP v (d0 c1 <> d0 c2) == evalOmegaP v (d0 $ c1 <> c2)
+  evalOmegaP v (d0P c1 <> d0P c2) == evalOmegaP v (d0P $ c1 <> c2)
 
 type D0LinearMult n = Rational -> Vec N.Nat1 (V n) -> C n -> Bool
 d0LinearMult :: N.SNatI n => D0LinearMult n
 d0LinearMult r v c =
-  evalOmegaP v (d0 $ amult r c)
-    == evalOmegaP v (mmult (liftToC . liftToTerm $ r) $ d0 c)
+  evalOmegaP v (d0P $ amult r c)
+    == evalOmegaP v (mmult (liftToC . liftToTerm $ r) $ d0P c)
 
 type D0LeibnizRule n = Vec N.Nat1 (V n) -> C n -> C n -> Bool
 d0LeibnizRule :: N.SNatI n => D0LeibnizRule n
 d0LeibnizRule v c1 c2 =
-  evalOmegaP v (d0 $ sappend c1 c2)
-    == evalOmegaP v (mmult c1 (d0 c2) <> mmult c2 (d0 c1))
+  evalOmegaP v (d0P $ sappend c1 c2)
+    == evalOmegaP v (mmult c1 (d0P c2) <> mmult c2 (d0P c1))
 
 
 type DLinearAdd n = Vec n (V n) -> Omega n -> Omega n -> Bool
@@ -194,7 +194,7 @@ main = do
   qc "exterior product super commutative 2"
     (extProdSuperComm (-1) :: ExtProdSuperComm N.Nat1 N.Nat3 N.Nat5)
 
-  putStrLn "Tests for d0:"
+  putStrLn "Tests for d0P:"
   qc "addition linear"
     (d0LinearAdd :: D0LinearAdd N.Nat3)
   qc "multiplication linear"
