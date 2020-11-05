@@ -18,29 +18,26 @@ pullbackDefC phi cm rn = evalC rn (pullbackC phi cm) ==
                          evalC (evalPhi rn phi) cm
 
 -- pullbackC is a functor
-type PullbackCId n = C n -> R n -> Bool
+type PullbackCId n = C n -> Bool
 pullbackCId :: SNatI n => PullbackCId n
-pullbackCId cn rn = evalC rn (pullbackC idPhi cn) == evalC rn cn
+pullbackCId cn = pullbackC idPhi cn == cn
 
-type PullbackCComp n m l = Phi n m -> Phi m l -> C l -> R n -> Bool
+type PullbackCComp n m l = Phi n m -> Phi m l -> C l -> Bool
 pullbackCComp :: (SNatI n, SNatI m, SNatI l) => PullbackCComp n m l
-pullbackCComp phiNM phiML cl rn =
-  evalC rn (pullbackC (compPhi phiNM phiML) cl) ==
-    evalC rn (pullbackC phiNM . pullbackC phiML $ cl)
+pullbackCComp phiNM phiML cl =
+  pullbackC (compPhi phiNM phiML) cl ==
+    (pullbackC phiNM . pullbackC phiML) cl
 
 -- pullback is linear
-type PullbackCAdd n m = Phi n m -> R n -> C m -> C m -> Bool
+type PullbackCAdd n m = Phi n m -> C m -> C m -> Bool
 pullbackCAdd :: (SNatI n, SNatI m) => PullbackCAdd n m
-pullbackCAdd phi rn cm1 cm2 =
-  (evalC rn . pullbackC phi $ cm1 <> cm2)
-    == evalC rn (pullbackC phi cm1) + evalC rn (pullbackC phi cm2)
+pullbackCAdd phi cm1 cm2 =
+  pullbackC phi (cm1 <> cm2) == pullbackC phi cm1 <> pullbackC phi cm2
 
 type PullbackCMult n m = Phi n m -> Rational -> R n -> C m -> Bool
 pullbackCMult :: (SNatI n, SNatI m) => PullbackCMult n m
 pullbackCMult phi r rn cm =
-  evalC rn (amult r . pullbackC phi $ cm)
-    == evalC rn (pullbackC phi . amult r $ cm)
-
+  (amult r . pullbackC phi) cm == (pullbackC phi . amult r) cm
 
 
 type PushforwardDef n m = Phi n m -> Vp n -> C m -> Bool
@@ -83,7 +80,7 @@ main = do
   qc "pullback preserves identity"
     (pullbackCId :: PullbackCId N.Nat3)
   qc "pullbackC preserves composition"
-    (pullbackCComp :: PullbackCComp N.Nat2 N.Nat3 N.Nat2)
+    (pullbackCComp :: PullbackCComp N.Nat1 N.Nat2 N.Nat2)
   qc "pullbackC is preserves multiplication"
     (pullbackCMult :: PullbackCMult N.Nat3 N.Nat2)
   qc "pullbackC is preserves addition"
@@ -96,7 +93,7 @@ main = do
   qc "pushforward preserves identity"
     (pushforwardId :: PushforwardId N.Nat3)
   qc "pushforward preserves composition"
-    (pushforwardComp :: PushforwardComp N.Nat2 N.Nat3 N.Nat2)
+    (pushforwardComp :: PushforwardComp N.Nat1 N.Nat2 N.Nat2)
   qc "pushforward is preserves multiplication"
     (pushforwardMult :: PushforwardMult N.Nat3 N.Nat2)
   qc "pushforward is preserves addition"
