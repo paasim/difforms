@@ -19,11 +19,11 @@ type ThreeTerm n = Term n -> TwoTerm n
 
 type EvalLiftedTerm n = Rational -> R n -> Bool
 evalLiftedTerm :: EvalLiftedTerm n
-evalLiftedTerm d r = evalTerm (liftToTerm d) r == d
+evalLiftedTerm d r = evalTerm r (liftToTerm d) == d
 
 mkTermIsIdempotent :: Rational -> [Var n] -> Bool
-mkTermIsIdempotent d vars = let t1 = mkTerm d vars
-                            in t1 == mkTerm (termCoeff t1) (termVars t1)
+mkTermIsIdempotent d vars = let t1 = mkTerm vars d
+                            in t1 == mkTerm (termVars t1) (termCoeff t1)
 
 semigroupSymmetricTerm :: TwoTerm n
 semigroupSymmetricTerm r1 r2 = (r1 <> r2) == (r2 <> r1)
@@ -34,62 +34,62 @@ semigroupAssociatesTerm r1 r2 r3 = ((r1 <> r2) <> r3) == (r1 <> (r2 <> r3))
 monoidLeftIdTerm :: OneTerm n
 monoidLeftIdTerm r = (mempty <> r) == r
 
--- Terms
-type OneTerms n   = Terms n -> Bool
-type TwoTerms n   = Terms n -> OneTerms n
-type ThreeTerms n = Terms n -> TwoTerms n
-type FourTerms n  = Terms n -> ThreeTerms n
+-- C
+type OneC n   = C n -> Bool
+type TwoC n   = C n -> OneC n
+type ThreeC n = C n -> TwoC n
+type FourC n  = C n -> ThreeC n
 
-type EvalLiftedTerms n = R n -> Term n -> Bool
-evalLiftedTerms :: EvalLiftedTerms n
-evalLiftedTerms r t = evalTerms (liftToTerms t) r == evalTerm t r
+type EvalLiftedC n = R n -> Term n -> Bool
+evalLiftedC :: EvalLiftedC n
+evalLiftedC r t = evalC r (liftToC t) == evalTerm r t
 
-mkTermsIsIdempotent :: Term n -> [Term n] -> Bool
-mkTermsIsIdempotent t ts = let (Terms (t1 :| ts1)) = mkTerms t ts
-                            in Terms (t1 :| ts1) == mkTerms t1 ts1
+mkCIsIdempotent :: Term n -> [Term n] -> Bool
+mkCIsIdempotent t ts = let (Terms t1 ts1) = mkC t ts
+                       in Terms t1 ts1 == mkC t1 ts1
 
-semigroupSymmetric :: TwoTerms n
+semigroupSymmetric :: TwoC n
 semigroupSymmetric r1 r2 = (r1 <> r2) == (r2 <> r1)
 
-semigroupAssociates :: ThreeTerms n
+semigroupAssociates :: ThreeC n
 semigroupAssociates r1 r2 r3 = ((r1 <> r2) <> r3) == (r1 <> (r2 <> r3))
 
-monoidLeftId :: OneTerms n
+monoidLeftId :: OneC n
 monoidLeftId r = (mempty <> r) == r
 
-semirngAssociates :: ThreeTerms n
+semirngAssociates :: ThreeC n
 semirngAssociates r1 r2 r3 = ((r1 `sappend` r2) `sappend` r3)
   == (r1 `sappend` (r2 `sappend` r3))
 
-semirngLeftId :: OneTerms n
+semirngLeftId :: OneC n
 semirngLeftId r = (sempty `sappend` r) == r
 
-semirngRightId :: OneTerms n
+semirngRightId :: OneC n
 semirngRightId r = (r `sappend` sempty) == r
 
-semiringDistributes :: FourTerms n
+semiringDistributes :: FourC n
 semiringDistributes r1 r2 r3 r4 = ((r1 <> r2) `sappend` (r3 <> r4))
   == ((r1 `sappend` r3) <> (r1 `sappend` r4) <> (r2 `sappend` r3) <> (r2 `sappend` r4))
 
-semiringLeftAnnih :: OneTerms n
+semiringLeftAnnih :: OneC n
 semiringLeftAnnih r = mempty `sappend` r == mempty
 
-semiringRightAnnih :: OneTerms n
+semiringRightAnnih :: OneC n
 semiringRightAnnih r = r `sappend` mempty == mempty
 
-amultAssociates :: Int -> Int -> OneTerms n
-amultAssociates i1 i2 ts = let d1 = fromIntegral i1
-                               d2 = fromIntegral i2
-  in amult (d1*d2) ts == amult d1 (amult d2 ts)
+amultAssociates :: Int -> Int -> OneC n
+amultAssociates i1 i2 c = let d1 = fromIntegral i1
+                              d2 = fromIntegral i2
+  in amult (d1*d2) c == amult d1 (amult d2 c)
 
-amultDistributes1 :: Int -> TwoTerms n
-amultDistributes1 i ts1 ts2 = let d = fromIntegral i
-  in amult d (ts1 <> ts2) == amult d ts1 <> amult d ts2
+amultDistributes1 :: Int -> TwoC n
+amultDistributes1 i c1 c2 = let d = fromIntegral i
+  in amult d (c1 <> c2) == amult d c1 <> amult d c2
 
-amultDistributes2 :: Int -> Int -> OneTerms n
-amultDistributes2 i1 i2 ts = let d1 = fromIntegral i1
-                                 d2 = fromIntegral i2
-  in amult (d1 + d2) ts == amult d1 ts <> amult d2 ts
+amultDistributes2 :: Int -> Int -> OneC n
+amultDistributes2 i1 i2 c = let d1 = fromIntegral i1
+                                d2 = fromIntegral i2
+  in amult (d1 + d2) c == amult d1 c <> amult d2 c
 
 main :: IO ()
 main = do
@@ -104,34 +104,34 @@ main = do
   qc "monoid left identity"
     (monoidLeftIdTerm :: OneTerm N.Nat3)
 
-  putStrLn "Tests for Terms:"
+  putStrLn "Tests for C:"
   qc "evaluating lifted term is the same as evaluating the term"
-    (evalLiftedTerms :: EvalLiftedTerms N.Nat3)
+    (evalLiftedC :: EvalLiftedC N.Nat3)
   qc "semigroup symmetric"
-    (semigroupSymmetric :: TwoTerms N.Nat3)
+    (semigroupSymmetric :: TwoC N.Nat3)
   qc "semigroup associative"
-    (semigroupAssociates :: ThreeTerms N.Nat3)
+    (semigroupAssociates :: ThreeC N.Nat3)
   -- no need to test for right identity because the monoid is symmetric
   qc "monoid left identity"
-    (monoidLeftId :: OneTerms N.Nat3)
+    (monoidLeftId :: OneC N.Nat3)
   qc "semirng associative"
-    (semirngAssociates :: ThreeTerms N.Nat3)
+    (semirngAssociates :: ThreeC N.Nat3)
   qc "semirng left id"
-    (semirngLeftId :: OneTerms N.Nat3)
+    (semirngLeftId :: OneC N.Nat3)
   qc "semirng right id"
-    (semirngRightId :: OneTerms N.Nat3)
+    (semirngRightId :: OneC N.Nat3)
   qc "semiring distributive"
-    (semiringDistributes :: FourTerms N.Nat3)
+    (semiringDistributes :: FourC N.Nat3)
   qc "semiring 0 left annihilator"
-    (semiringLeftAnnih :: OneTerms N.Nat3)
+    (semiringLeftAnnih :: OneC N.Nat3)
   qc "semiring 0 right annihilator"
-    (semiringRightAnnih :: OneTerms N.Nat3)
+    (semiringRightAnnih :: OneC N.Nat3)
   qc "algebra multiplication associative"
-    (amultAssociates :: Int -> Int -> OneTerms N.Nat3)
+    (amultAssociates :: Int -> Int -> OneC N.Nat3)
   qc "algebra multiplication distributive in double"
-    (amultDistributes1 :: Int -> TwoTerms N.Nat3)
+    (amultDistributes1 :: Int -> TwoC N.Nat3)
   qc "algebra multiplication distributive in terms"
-    (amultDistributes2 :: Int -> Int -> OneTerms N.Nat3)
+    (amultDistributes2 :: Int -> Int -> OneC N.Nat3)
 
 
 -- rename for exporting

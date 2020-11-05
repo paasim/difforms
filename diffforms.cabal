@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: afaec9c1f0cb677e2b0d24beaf66f8427f18e32f1a8bd87331195476160c2dec
+-- hash: 8e5a358ff375767398fdde6a4b535ff8376509acd0f27ffe43ff8ad29822b59f
 
 name:           diffforms
-version:        0.2.0.0
+version:        0.5.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/diffforms#readme>
 homepage:       https://github.com/githubuser/diffforms#readme
 bug-reports:    https://github.com/githubuser/diffforms/issues
@@ -28,7 +28,8 @@ source-repository head
 library
   exposed-modules:
       C
-      Examples
+      Omega
+      OmegaP
       Phi
       R
       Typeclasses
@@ -67,6 +68,8 @@ test-suite diffforms-test
   other-modules:
       TestC
       TestHelpers
+      TestOmega
+      TestOmegaP
       TestPhi
       TestR
       TestV

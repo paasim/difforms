@@ -1,6 +1,7 @@
 module TestPhi ( mainPhi ) where
 
 import qualified Data.Type.Nat as N
+import Data.Vec.Lazy ( Vec(..) )
 import Test.QuickCheck
 import Typeclasses
 import R
@@ -9,53 +10,53 @@ import V
 import Phi
 import TestHelpers
 
-type PullbackDef n m = Phi n m -> Terms m -> R n -> Bool
-
+type PullbackDef n m = Phi n m -> C m -> R n -> Bool
 pullbackDef :: (N.SNatI n, N.SNatI m) => PullbackDef n m
-pullbackDef phi tsm rn = evalTerms (pullback phi tsm) rn ==
-                         evalTerms tsm (vecMatProduct rn . phiMat $ phi)
+pullbackDef phi cm rn = evalC rn (pullback phi cm) ==
+                         evalC (evalPhi rn phi) cm
 
 
-type PushforwardDef n m = Phi n m -> V n -> Terms m -> R n -> Bool
-
+type PushforwardDef n m = Phi n m -> Vp n -> C m -> Bool
 pushforwardDef :: (N.SNatI n, N.SNatI m) => PushforwardDef n m
-pushforwardDef phi vn tsm rn =
-  evalTerms (evalV (pushforward phi vn) tsm) (vecMatProduct rn . phiMat $ phi) ==
-    evalTerms (evalV vn $ pullback phi tsm) rn
+pushforwardDef phi vpn cm =
+  evalVp cm (pushforward phi vpn) == evalVp (pullback phi cm) vpn
 
 -- tests for:
 -- pushforward is a functor
-type PushforwardId n = V n -> Terms n -> Bool
+type PushforwardId n = Vp n -> C n -> Bool
 pushforwardId :: N.SNatI n => PushforwardId n
-pushforwardId v ts = evalV (pushforward idPhi v) ts == evalV v ts
+pushforwardId vp c = evalVp c (pushforward idPhi vp) == evalVp c vp
 
-type PushforwardComp n m l = Phi n m -> Phi m l -> V n -> Terms l -> Bool
+type PushforwardComp n m l = Phi n m -> Phi m l -> Vp n -> C l -> Bool
 pushforwardComp :: (N.SNatI n, N.SNatI m, N.SNatI l) => PushforwardComp n m l
-pushforwardComp phiNM phiML vn tsl =
-  evalV (pushforward (compPhi phiNM phiML) vn) tsl ==
-    evalV (pushforward phiML . pushforward phiNM $ vn) tsl
+pushforwardComp phiNM phiML vpn cl =
+  evalVp cl (pushforward (compPhi phiNM phiML) vpn) ==
+    evalVp cl (pushforward phiML . pushforward phiNM $ vpn)
 
 -- pushforward is linear
-type PushforwardMult n m = Phi n m -> Rational -> V n -> Terms m -> Bool
-pushforwardMult :: (N.SNatI n, N.SNatI m) => PushforwardMult n m
-pushforwardMult phi r v ts = evalV (vsmult r . pushforward phi $ v) ts
-                          == evalV (pushforward phi . vsmult r $ v) ts
+type PushforwardAdd n m = Phi n m -> R n -> Vec n Rational -> Vec n Rational -> C m -> Bool
+pushforwardAdd :: (N.SNatI n, N.SNatI m) => PushforwardAdd n m
+pushforwardAdd phi p v1 v2 c =
+  let vp1 = Vp p v1
+      vp2 = Vp p v2
+ in fmap (evalVp c . pushforward phi) (vpappend vp1 vp2)
+      == fmap (evalVp c) (vpappend (pushforward phi vp1) (pushforward phi vp2))
 
-type PushforwardAdd n m = Phi n m -> V n -> V n -> Terms m -> Bool
-pushforwardAdd :: (N.SNatI n, N.SNatI m) => Phi n m -> V n -> V n -> Terms m -> Bool
-pushforwardAdd phi v1 v2 ts =
-  evalV (pushforward phi . vsadd v1 $ v2) ts ==
-    evalV (vsadd (pushforward phi v1) (pushforward phi v2)) ts
+type PushforwardMult n m = Phi n m -> Rational -> Vp n -> C m -> Bool
+pushforwardMult :: (N.SNatI n, N.SNatI m) => PushforwardMult n m
+pushforwardMult phi r vp c = evalVp c (vpmult r . pushforward phi $ vp)
+                           == evalVp c (pushforward phi . vpmult r $ vp)
 
 main :: IO ()
 main = do
+  putStrLn "Tests for Phi:"
   qc "pullback works as expected"
     (pullbackDef :: PullbackDef N.Nat3 N.Nat2)
   qc "pushforward works as expected"
     (pushforwardDef :: PushforwardDef N.Nat3 N.Nat2)
   qc "pushforward preserves identity"
     (pushforwardId :: PushforwardId N.Nat3)
-  qc "pushforward preserves identity"
+  qc "pushforward preserves composition"
     (pushforwardComp :: PushforwardComp N.Nat3 N.Nat4 N.Nat2)
   qc "pushforward is preserves multiplication"
     (pushforwardMult :: PushforwardMult N.Nat3 N.Nat2)

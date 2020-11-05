@@ -23,25 +23,23 @@ semigroupAssociates r1 r2 r3 = ((r1 <> r2) <> r3) == (r1 <> (r2 <> r3))
 monoidLeftId :: N.SNatI n => OneR n
 monoidLeftId r = (mempty <> r) == r
 
-semirngAssociates :: N.SNatI n => ThreeR n
-semirngAssociates r1 r2 r3 = ((r1 `sappend` r2) `sappend` r3)
-  == (r1 `sappend` (r2 `sappend` r3))
+groupInv :: N.SNatI n => OneR n
+groupInv r = r <> ginv r == mempty && ginv r <> r == mempty
 
-semirngLeftId :: N.SNatI n => OneR n
-semirngLeftId r = (sempty `sappend` r) == r
+moduleAddDistributes1 :: N.SNatI n => Rational -> Rational -> OneR n
+moduleAddDistributes1 d1 d2 r =
+  mmult d1 r <> mmult d2 r == mmult (d1+d2) r
 
-semirngRightId :: N.SNatI n => OneR n
-semirngRightId r = (r `sappend` sempty) == r
+moduleAddDistributes2 :: N.SNatI n => Rational -> TwoR n
+moduleAddDistributes2 d r1 r2 =
+  mmult d r1 <> mmult d r2 == mmult d (r1 <> r2)
 
-semiringDistributes :: N.SNatI n => FourR n
-semiringDistributes r1 r2 r3 r4 = ((r1 <> r2) `sappend` (r3 <> r4))
-  == ((r1 `sappend` r3) <> (r1 `sappend` r4) <> (r2 `sappend` r3) <> (r2 `sappend` r4))
+moduleMultAssociates :: N.SNatI n => Rational -> Rational -> OneR n
+moduleMultAssociates d1 d2 r =
+  mmult d1 (mmult d2 r) == mmult (d1*d2) r
 
-semiringLeftAnnih :: N.SNatI n => OneR n
-semiringLeftAnnih r = mempty `sappend` r == mempty
-
-semiringRightAnnih :: N.SNatI n => OneR n
-semiringRightAnnih r = r `sappend` mempty == mempty
+module1Id :: N.SNatI n => OneR n
+module1Id r = mmult (1 :: Rational) r == r
 
 -- Matrices
 
@@ -70,18 +68,16 @@ main = do
   -- no need to test for right identity because the monoid is symmetric
   qc "monoid left identity"
     (monoidLeftId :: OneR N.Nat3)
-  qc "semirng associative"
-    (semirngAssociates :: ThreeR N.Nat3)
-  qc "semirn left identity"
-    (semirngLeftId :: OneR N.Nat3)
-  qc "semirn right identity"
-    (semirngRightId :: OneR N.Nat3)
-  qc "semiring distributive"
-    (semiringDistributes :: FourR N.Nat3)
-  qc "semiring 0 left annihilator"
-    (semiringLeftAnnih :: OneR N.Nat3)
-  qc "semiring 0 right annihilator"
-    (semiringRightAnnih :: OneR N.Nat3)
+  qc "group has inverses"
+    (groupInv :: OneR N.Nat3)
+  qc "module ring addition distributive"
+    (moduleAddDistributes1 :: Rational -> Rational -> OneR N.Nat3)
+  qc "module group addition distributive"
+    (moduleAddDistributes2 :: Rational -> TwoR N.Nat3)
+  qc "module multiplication associative"
+    (moduleAddDistributes2 :: Rational -> TwoR N.Nat3)
+  qc "module multiplication by 1 is identity"
+    (module1Id :: OneR N.Nat3)
 
   putStrLn "Tests for Mat:"
   qc "transpose is idenpotent"

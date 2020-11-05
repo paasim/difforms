@@ -1,14 +1,15 @@
+{-# LANGUAGE FunctionalDependencies #-}
 module Typeclasses where
 
 -- Definitions of Semirng, Semiring and Algebra
 
--- vsadd is basically the same as mappend/sappend
--- but different axioms
-class Vectorspace g where
-  vsempty :: g
-  vsinv :: g -> g
-  vsadd :: g -> g -> g
-  vsmult :: Rational -> g -> g
+-- A structure that is linear in the sense that elements
+-- can be added and multiplied by rationals
+class Monoid g => Group g where
+  ginv :: g -> g
+
+class Group g => Module g q | g -> q where
+  mmult :: q -> g -> g
 
 -- The monoid is assumed to commute,
 -- ie. (a <> b) <> c = a <> (b <> c)
