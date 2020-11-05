@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8e5a358ff375767398fdde6a4b535ff8376509acd0f27ffe43ff8ad29822b59f
+-- hash: 674d21ecac1c31faeea40d14a46efbc11e1c91f81529de3f16f5772d1ac19dc2
 
 name:           diffforms
-version:        0.5.0.0
+version:        0.9.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/diffforms#readme>
 homepage:       https://github.com/githubuser/diffforms#readme
 bug-reports:    https://github.com/githubuser/diffforms/issues

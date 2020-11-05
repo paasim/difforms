@@ -58,6 +58,12 @@ showStrAsFun n str = str <> " -> x_" <> show n
 jacobianAt :: SNatI n => Phi n m -> R n -> Mat n m
 jacobianAt phi rn = transpose . Mat . fmap (gradientAt rn) . phiComp $ phi
 
+jacobian :: SNatI n => Phi n m -> Vec m (Vec n (C n))
+jacobian = fmap (V . gradient) . phiComp
+
+jacobianToAt :: SNatI n => Vec m (Vec n (C n)) -> R n -> Mat n m
+jacobianToAt j r = transpose . Mat . fmap (R . fmap (evalC r)) $ j
+
 pullbackCovar :: SNatI n => Phi n m -> Covar m -> Omega n
 pullbackCovar phi cv = d0 $ phiComp phi V.! covarDim cv
 
@@ -69,4 +75,16 @@ pullbackCoterm phi (Coterm cvs c) =
 pullback :: SNatI n => Phi n m -> Omega m -> Omega n
 pullback phi (Coterms ct cts) =
   foldr (<>) (pullbackCoterm phi ct) $ fmap (pullbackCoterm phi) cts
+
+pullbackCovarP :: SNatI n => Phi n m -> Covar m -> OmegaP (S Z) n
+pullbackCovarP phi cv = d0P $ phiComp phi V.! covarDim cv
+
+pullbackCotermP :: SNatI n => Phi n m -> CotermP p m -> OmegaP p n
+pullbackCotermP phi (CotermP VNil c) = liftToOmegaP . liftToCotermP . pullbackC phi $ c
+pullbackCotermP phi (CotermP (cv:::cvs) c) =
+  exteriorProductP (pullbackCovarP phi cv) . pullbackCotermP phi $ CotermP cvs c
+
+pullbackP :: SNatI n => Phi n m -> OmegaP p m -> OmegaP p n
+pullbackP phi (CotermPs ctp ctps) =
+  foldr (<>) (pullbackCotermP phi ctp) $ fmap (pullbackCotermP phi) ctps
 
