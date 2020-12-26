@@ -153,6 +153,9 @@ dCoterm :: SNatI n => Coterm n -> Omega n
 dCoterm ct = foldr (<>) mempty . fmap (liftToOmega . dCotermBy ct . Covar) $ V.universe
 
 -- exterior derivative
+d0 :: SNatI n => C n -> Omega n
+d0 = d . liftToOmega . liftToCoterm
+
 d :: SNatI n => Omega n -> Omega n
 d (Coterms ct cts) = foldr (<>) (dCoterm ct) $ fmap dCoterm cts
 

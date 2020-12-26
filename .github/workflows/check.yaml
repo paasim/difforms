@@ -1,0 +1,33 @@
+# For help debugging build failures open an issue on the RStudio community with the 'github-actions' tag.
+# https://community.rstudio.com/new-topic?category=Package%20development&tags=github-actions
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+name: check
+
+jobs:
+  check:
+    runs-on: ubuntu-20.04
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install system dependencies
+        run: |
+          sudo apt install -y libgmp-dev
+          mkdir -p ~/.local/bin
+          export PATH=$HOME/.local/bin:$PATH
+          curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+      - name: Cache .stack
+        uses: actions/cache@v2
+        with:
+          path: $HOME/.stack
+          key: ubuntu-20.04
+      - name: Check
+        run: stack --no-terminal --install-ghc test
+

@@ -146,8 +146,8 @@ dCotermP ctp = foldr (<>) mempty . fmap (liftToOmegaP . dCotermPBy ctp . Covar) 
 dP :: SNatI n => OmegaP p n -> OmegaP (S p) n
 dP (CotermPs ctp ctps) = foldr (<>) (dCotermP ctp) $ fmap dCotermP ctps
 
-d0 :: SNatI n => C n -> OmegaP (S Z) n
-d0 = dP . liftToOmegaP . liftToCotermP
+d0P :: SNatI n => C n -> OmegaP (S Z) n
+d0P = dP . liftToOmegaP . liftToCotermP
 
 -- conversions between CotermP and Coterm and Omegap and Omega
 cotermPToCoterm :: CotermP p n -> Coterm n

@@ -66,32 +66,41 @@ linearMultO :: N.SNatI n => LinearMultO n
 linearMultO c vs o = evalOmega vs (mmult c o) == sappend c (evalOmega vs o)
 
 
-{-
---dd = 0
-type DLinearAdd n = Omega n -> Omega n -> Bool
-dLinearAdd :: DLinearAdd n
-dLinearAdd o1 o2 = evalOmega vs (d o1 <> d o2) == evalOmega vs (d $ o1 <> o2)
+type D0LinearAdd n = Vec n (V n) -> C n -> C n -> Bool
+d0LinearAdd :: N.SNatI n => D0LinearAdd n
+d0LinearAdd v c1 c2 =
+  evalOmega v (d0 c1 <> d0 c2) == evalOmega v (d0 $ c1 <> c2)
 
-type DLinearMult n = Rational -> Omega n -> Bool
-dLinearMult :: DLinearMult n
-dLinearMult r o = sappend (liftToC . liftToTerm r)
+type D0LinearMult n = Rational -> Vec n (V n) -> C n -> Bool
+d0LinearMult :: N.SNatI n => D0LinearMult n
+d0LinearMult r v c =
+  evalOmega v (d0 $ amult r c)
+    == evalOmega v (mmult (liftToC . liftToTerm $ r) $ d0 c)
 
-type DLeibniz1 n = Rational -> C n -> Bool
-dLeibniz1 :: DLeibniz1 n
-dLeibniz1 
+type D0LeibnizRule n = Vec n (V n) -> C n -> C n -> Bool
+d0LeibnizRule :: N.SNatI n => D0LeibnizRule n
+d0LeibnizRule v c1 c2 =
+  evalOmega v (d0 $ sappend c1 c2)
+    == evalOmega v (mmult c1 (d0 c2) <> mmult c2 (d0 c1))
 
-type DLeibniz2a n = Omega n -> Omega n -> Bool
-dLeibniz2a :: DLeibniz2a n
-dLeibniz2a 
 
-type DLeibniz2b n = Omega n -> Omega n -> Bool
-dLeibniz2b :: DLeibniz2b n
-dLeibniz2b 
+type DLinearAdd n = Vec n (V n) -> Omega n -> Omega n -> Bool
+dLinearAdd :: N.SNatI n => DLinearAdd n
+dLinearAdd vs o1 o2 =
+  evalOmega vs (d $ o1 <> o2) == evalOmega vs (d o1) <> evalOmega vs (d o2)
 
-type DdZero n = Omega n -> Bool
-ddZero :: DdZero n
-ddZero 
--}
+type DLinearMult n = Rational -> Vec n (V n) -> Omega n -> Bool
+dLinearMult :: N.SNatI n => DLinearMult n
+dLinearMult r vs o =
+  evalOmega vs (d $ mmult (liftToC . liftToTerm $ r) o)
+    == evalOmega vs (mmult (liftToC . liftToTerm $ r) $ d o)
+
+-- leibniz rule applies only when the first argument of the exterior
+-- product is a p-form
+
+type DTwiceZero n = Vec n (V n) -> Omega n -> Bool
+dTwiceZero :: N.SNatI n => DTwiceZero n
+dTwiceZero vs o = evalOmega vs (d . d $ o) == mempty
 
 
 main :: IO ()
@@ -117,6 +126,22 @@ main = do
     (linearAddO :: LinearAddO N.Nat3)
   qc "multiplication by C n linear"
     (linearMultO :: LinearMultO N.Nat3)
+
+  putStrLn "Tests for d0:"
+  qc "addition linear"
+    (d0LinearAdd :: D0LinearAdd N.Nat3)
+  qc "multiplication linear"
+    (d0LinearMult :: D0LinearMult N.Nat3)
+  qc "leibniz rule"
+    (d0LeibnizRule :: D0LeibnizRule N.Nat3)
+
+  putStrLn "Tests for d:"
+  qc "addition linear"
+    (dLinearAdd :: DLinearAdd N.Nat3)
+  qc "multiplication linear"
+    (dLinearMult :: DLinearMult N.Nat3)
+  qc "dd = 0"
+    (dTwiceZero :: DTwiceZero N.Nat3)
 
 
 -- rename for exporting
