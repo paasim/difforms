@@ -23,10 +23,11 @@ jobs:
           mkdir -p ~/.local/bin
           export PATH=$HOME/.local/bin:$PATH
           curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-      - name: Check
-        run: stack --no-terminal --install-ghc test
       - name: Cache .stack
         uses: actions/cache@v2
         with:
           path: $HOME/.stack
           key: ubuntu-20.04
+      - name: Check
+        run: stack --no-terminal --install-ghc test
+
