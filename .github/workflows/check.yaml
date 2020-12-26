@@ -11,7 +11,7 @@ on:
 name: check
 
 jobs:
-  R-CMD-check:
+  check:
     runs-on: ubuntu-20.04
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
