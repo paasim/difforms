@@ -4,16 +4,16 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 674d21ecac1c31faeea40d14a46efbc11e1c91f81529de3f16f5772d1ac19dc2
+-- hash: 4138a7c1ae8ad5812efab433ff7b5a8c7a13ddcb11c129f0f58471d7fe23f76f
 
 name:           diffforms
 version:        0.9.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/diffforms#readme>
-homepage:       https://github.com/githubuser/diffforms#readme
-bug-reports:    https://github.com/githubuser/diffforms/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2020 Author name here
+homepage:       https://github.com/paasim/diffforms#readme
+bug-reports:    https://github.com/paasim/diffforms/issues
+author:         Markus Paasiniemi
+maintainer:     paasim@iki.fi
+copyright:      2020 Markus Paasiniemi
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -23,13 +23,12 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/diffforms
+  location: https://github.com/paasim/diffforms
 
 library
   exposed-modules:
       C
-      Omega
-      OmegaP
+      D
       Phi
       R
       Typeclasses
@@ -67,9 +66,8 @@ test-suite diffforms-test
   main-is: Spec.hs
   other-modules:
       TestC
+      TestD
       TestHelpers
-      TestOmega
-      TestOmegaP
       TestPhi
       TestR
       TestV

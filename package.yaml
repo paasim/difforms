@@ -1,10 +1,10 @@
 name:                diffforms
 version:             0.9.0.0
-github:              "githubuser/diffforms"
+github:              "paasim/diffforms"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2020 Author name here"
+author:              "Markus Paasiniemi"
+maintainer:          "paasim@iki.fi"
+copyright:           "2020 Markus Paasiniemi"
 
 extra-source-files:
 - README.md

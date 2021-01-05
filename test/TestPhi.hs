@@ -8,7 +8,6 @@ import Typeclasses
 import R
 import C
 import V
-import Omega
 import Phi
 import TestHelpers
 
