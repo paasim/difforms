@@ -13,8 +13,7 @@ import Typeclasses
 import R
 import C
 import V
-import Omega
-import OmegaP
+import D
 
 -- Map from R n to R m defined componentwise,
 -- phi_i defines how i:th element depends on R n
@@ -35,7 +34,7 @@ evalPhi rn = R . fmap (evalC rn) . phiComp
 pullbackTerm :: Phi n m -> Term m -> C n
 pullbackTerm phi (Term [] d) = liftToC . liftToTerm $ d
 pullbackTerm phi (Term (Var n exp : vs) d) =
-  sappend (nthPower (exp+1) $ phiComp phi V.! n) (pullbackTerm phi $ Term vs d)
+  sappend (nthPower (S exp) $ phiComp phi V.! n) (pullbackTerm phi $ Term vs d)
 
 -- precomposes f with the manifold map
 pullbackC :: Phi n m -> C m -> C n
@@ -47,7 +46,7 @@ pushforward phi (Vp p v) = Vp (evalPhi p phi)
                               (x $ vecMatProduct (R v) (jacobianAt phi p))
 
 idPhi :: SNatI n => Phi n n
-idPhi = Phi . fmap (\n -> liftToC . mkTerm [Var n 0] $ 1) $ V.universe
+idPhi = Phi . fmap (\n -> liftToC . mkTerm [Var n Z] $ 1) $ V.universe
 
 compPhi :: (SNatI n, SNatI m, SNatI l) => Phi n m -> Phi m l -> Phi n l
 compPhi phiNM = Phi . fmap (pullbackC phiNM) . phiComp
@@ -64,27 +63,16 @@ jacobian = fmap gradient . phiComp
 jacobianToAt :: SNatI n => Vec m (Vec n (C n)) -> R n -> Mat n m
 jacobianToAt j r = transpose . Mat . fmap (R . fmap (evalC r)) $ j
 
-pullbackCovar :: SNatI n => Phi n m -> Covar m -> Omega n
+pullbackCovar :: SNatI n => Phi n m -> Covar m -> D (S Z) n
 pullbackCovar phi cv = d0 $ phiComp phi V.! covarDim cv
 
-pullbackCoterm :: SNatI n => Phi n m -> Coterm m -> Omega n
-pullbackCoterm phi (Coterm cvs c) =
-  foldr exteriorProduct (liftToOmega . liftToCoterm . pullbackC phi $ c)
-                      $ fmap (pullbackCovar phi) cvs
+pullbackCoterm :: SNatI n => Phi n m -> Coterm p m -> D p n
+pullbackCoterm _ ZeroCoterm = liftToD ZeroCoterm
+pullbackCoterm phi (Coterm VNil c) = liftToD . liftToCoterm . pullbackC phi $ c
+pullbackCoterm phi (Coterm (cv:::cvs) c) =
+  exteriorProduct (pullbackCovar phi cv) . pullbackCoterm phi $ Coterm cvs c
 
-pullback :: SNatI n => Phi n m -> Omega m -> Omega n
-pullback phi (Coterms ct cts) =
-  foldr (<>) (pullbackCoterm phi ct) $ fmap (pullbackCoterm phi) cts
-
-pullbackCovarP :: SNatI n => Phi n m -> Covar m -> OmegaP (S Z) n
-pullbackCovarP phi cv = d0P $ phiComp phi V.! covarDim cv
-
-pullbackCotermP :: SNatI n => Phi n m -> CotermP p m -> OmegaP p n
-pullbackCotermP phi (CotermP VNil c) = liftToOmegaP . liftToCotermP . pullbackC phi $ c
-pullbackCotermP phi (CotermP (cv:::cvs) c) =
-  exteriorProductP (pullbackCovarP phi cv) . pullbackCotermP phi $ CotermP cvs c
-
-pullbackP :: SNatI n => Phi n m -> OmegaP p m -> OmegaP p n
-pullbackP phi (CotermPs ctp ctps) =
-  foldr (<>) (pullbackCotermP phi ctp) $ fmap (pullbackCotermP phi) ctps
+pullbackD :: SNatI n => Phi n m -> D p m -> D p n
+pullbackD phi (Coterms ctp ctps) =
+  foldr (<>) (pullbackCoterm phi ctp) $ fmap (pullbackCoterm phi) ctps
 

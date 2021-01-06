@@ -1,12 +1,13 @@
-module TestR ( mainR ) where
+module TestR ( testR ) where
 
 import qualified Data.Type.Nat as N
 import Data.Fin ( Fin(..) )
 import qualified Data.Fin as F
 import Test.QuickCheck
+import Test.Hspec
+import Test.Hspec.QuickCheck
 import Typeclasses
 import R
-import TestHelpers
 
 -- Vectors
 type OneR n = R n -> Bool
@@ -58,36 +59,32 @@ rowAppendProdWithCoordVec r m = vecMatProduct (coordVec F.fin0) (appendRow r m) 
 colAppendProdWithCoordVec :: (N.SNatI n, N.SNatI m) => MatR n m
 colAppendProdWithCoordVec r m = matVecProduct (appendCol r m) (coordVec F.fin0) == r
 
-main :: IO ()
-main = do
-  putStrLn "Tests for R:"
-  qc "semigroup symmetric"
-    (semigroupSymmetric :: TwoR N.Nat3)
-  qc "semigroup associative"
-    (semigroupAssociates :: ThreeR N.Nat3)
-  -- no need to test for right identity because the monoid is symmetric
-  qc "monoid left identity"
-    (monoidLeftId :: OneR N.Nat3)
-  qc "group has inverses"
-    (groupInv :: OneR N.Nat3)
-  qc "module ring addition distributive"
-    (moduleAddDistributes1 :: Rational -> Rational -> OneR N.Nat3)
-  qc "module group addition distributive"
-    (moduleAddDistributes2 :: Rational -> TwoR N.Nat3)
-  qc "module multiplication associative"
-    (moduleAddDistributes2 :: Rational -> TwoR N.Nat3)
-  qc "module multiplication by 1 is identity"
-    (module1Id :: OneR N.Nat3)
+testR :: IO ()
+testR = hspec $ do
+  describe "Tests for R, R:" $ do
+    prop "semigroup is symmetric"
+      (semigroupSymmetric :: TwoR N.Nat3)
+    prop "semigroup associative"
+      (semigroupAssociates :: ThreeR N.Nat3)
+    -- no need to test for right identity because the monoid is symmetric
+    prop "monoid left identity"
+      (monoidLeftId :: OneR N.Nat3)
+    prop "group has inverses"
+      (groupInv :: OneR N.Nat3)
+    prop "module ring addition distributive"
+      (moduleAddDistributes1 :: Rational -> Rational -> OneR N.Nat3)
+    prop "module group addition distributive"
+      (moduleAddDistributes2 :: Rational -> TwoR N.Nat3)
+    prop "module multiplication associative"
+      (moduleAddDistributes2 :: Rational -> TwoR N.Nat3)
+    prop "module multiplication by 1 is identity"
+      (module1Id :: OneR N.Nat3)
 
-  putStrLn "Tests for Mat:"
-  qc "transpose is idenpotent"
-    (transpIdenpotent :: OneMat N.Nat5 N.Nat3)
-  qc "appending a row and extracting it is identity"
-    (rowAppendProdWithCoordVec :: RMat N.Nat5 N.Nat3)
-  qc "appending a col and extracting it is identity"
-    (colAppendProdWithCoordVec :: MatR N.Nat5 N.Nat3)
-
-
--- rename for exporting
-mainR = main
+  describe "Tests for R, Mat:" $ do
+    prop "transpose is idenpotent"
+      (transpIdenpotent :: OneMat N.Nat5 N.Nat3)
+    prop "appending a row and extracting it is identity"
+      (rowAppendProdWithCoordVec :: RMat N.Nat5 N.Nat3)
+    prop "appending a col and extracting it is identity"
+      (colAppendProdWithCoordVec :: MatR N.Nat5 N.Nat3)
 

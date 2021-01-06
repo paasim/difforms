@@ -3,21 +3,14 @@ module Main where
 import TestR
 import TestC
 import TestV
+import TestD
 import TestPhi
-import TestOmega
-import TestOmegaP
 
 main :: IO ()
 main = do
-  mainR
-  putStrLn ""
-  mainC
-  putStrLn ""
-  mainV
-  putStrLn ""
-  mainOmega
-  putStrLn ""
-  mainOmegaP
-  putStrLn ""
-  mainPhi
+  testR
+  testC
+  testV
+  testD
+  testPhi
 

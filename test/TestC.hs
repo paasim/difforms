@@ -1,14 +1,15 @@
-module TestC ( mainC ) where
+module TestC ( testC ) where
 
 import qualified Data.Type.Nat as N
 import Data.Fin ( Fin(..) )
 import qualified Data.Fin as F
 import Data.List.NonEmpty ( NonEmpty(..) )
 import Test.QuickCheck
+import Test.Hspec
+import Test.Hspec.QuickCheck
 import Typeclasses
 import R
 import C
-import TestHelpers
 
 -- Nothing to test with variables
 
@@ -91,49 +92,45 @@ amultDistributes2 i1 i2 c = let d1 = fromIntegral i1
                                 d2 = fromIntegral i2
   in amult (d1 + d2) c == amult d1 c <> amult d2 c
 
-main :: IO ()
-main = do
-  putStrLn "Tests for Term:"
-  qc "evaluating lifted double is identity"
-    (evalLiftedTerm :: EvalLiftedTerm N.Nat3)
-  qc "semigroup symmetric"
-    (semigroupSymmetricTerm :: TwoTerm N.Nat3)
-  qc "semigroup associative"
-    (semigroupAssociatesTerm :: ThreeTerm N.Nat3)
+testC :: IO ()
+testC = hspec $ do
+  describe "Tests for C, Term:" $ do
+    prop "evaluating lifted double is identity"
+      (evalLiftedTerm :: EvalLiftedTerm N.Nat3)
+    prop "semigroup symmetric"
+      (semigroupSymmetricTerm :: TwoTerm N.Nat3)
+    prop "semigroup associative"
+      (semigroupAssociatesTerm :: ThreeTerm N.Nat3)
   -- no need to test for right identity because the monoid is symmetric
-  qc "monoid left identity"
-    (monoidLeftIdTerm :: OneTerm N.Nat3)
+    prop "monoid left identity"
+      (monoidLeftIdTerm :: OneTerm N.Nat3)
 
-  putStrLn "Tests for C:"
-  qc "evaluating lifted term is the same as evaluating the term"
-    (evalLiftedC :: EvalLiftedC N.Nat3)
-  qc "semigroup symmetric"
-    (semigroupSymmetric :: TwoC N.Nat3)
-  qc "semigroup associative"
-    (semigroupAssociates :: ThreeC N.Nat3)
+  describe "Tests for C, C:" $ do
+    prop "evaluating lifted term is the same as evaluating the term"
+      (evalLiftedC :: EvalLiftedC N.Nat3)
+    prop "semigroup symmetric"
+      (semigroupSymmetric :: TwoC N.Nat3)
+    prop "semigroup associative"
+      (semigroupAssociates :: ThreeC N.Nat3)
   -- no need to test for right identity because the monoid is symmetric
-  qc "monoid left identity"
-    (monoidLeftId :: OneC N.Nat3)
-  qc "semirng associative"
-    (semirngAssociates :: ThreeC N.Nat3)
-  qc "semirng left id"
-    (semirngLeftId :: OneC N.Nat3)
-  qc "semirng right id"
-    (semirngRightId :: OneC N.Nat3)
-  qc "semiring distributive"
-    (semiringDistributes :: FourC N.Nat3)
-  qc "semiring 0 left annihilator"
-    (semiringLeftAnnih :: OneC N.Nat3)
-  qc "semiring 0 right annihilator"
-    (semiringRightAnnih :: OneC N.Nat3)
-  qc "algebra multiplication associative"
-    (amultAssociates :: Int -> Int -> OneC N.Nat3)
-  qc "algebra multiplication distributive in double"
-    (amultDistributes1 :: Int -> TwoC N.Nat3)
-  qc "algebra multiplication distributive in terms"
-    (amultDistributes2 :: Int -> Int -> OneC N.Nat3)
-
-
--- rename for exporting
-mainC = main
+    prop "monoid left identity"
+      (monoidLeftId :: OneC N.Nat3)
+    prop "semirng associative"
+      (semirngAssociates :: ThreeC N.Nat3)
+    prop "semirng left id"
+      (semirngLeftId :: OneC N.Nat3)
+    prop "semirng right id"
+      (semirngRightId :: OneC N.Nat3)
+    prop "semiring distributive"
+      (semiringDistributes :: FourC N.Nat3)
+    prop "semiring 0 left annihilator"
+      (semiringLeftAnnih :: OneC N.Nat3)
+    prop "semiring 0 right annihilator"
+      (semiringRightAnnih :: OneC N.Nat3)
+    prop "algebra multiplication associative"
+      (amultAssociates :: Int -> Int -> OneC N.Nat3)
+    prop "algebra multiplication distributive in double"
+      (amultDistributes1 :: Int -> TwoC N.Nat3)
+    prop "algebra multiplication distributive in terms"
+      (amultDistributes2 :: Int -> Int -> OneC N.Nat3)
 
