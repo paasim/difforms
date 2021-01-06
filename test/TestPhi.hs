@@ -41,6 +41,31 @@ pullbackCMult phi r rn cm =
   (amult r . pullbackC phi) cm == (pullbackC phi . amult r) cm
 
 
+-- pullbackD is a functor
+type PullbackDId p n = Vec p (V n) -> D p n -> Bool
+pullbackDId :: SNatI n => PullbackDId p n
+pullbackDId vs dn = evalD vs (pullbackD idPhi dn) == evalD vs dn
+
+type PullbackDComp p n m l = Phi n m -> Phi m l -> Vec p (V n) -> D p l -> Bool
+pullbackDComp :: (SNatI n, SNatI m, SNatI l) => PullbackDComp p n m l
+pullbackDComp phiNM phiML vs dl =
+  evalD vs (pullbackD (compPhi phiNM phiML) dl) ==
+    evalD vs (pullbackD phiNM . pullbackD phiML $ dl)
+
+-- pullback is linear
+type PullbackDAdd p n m = Phi n m -> Vec p (V n) -> D p m -> D p m -> Bool
+pullbackDAdd :: (SNatI n, SNatI m) => PullbackDAdd p n m
+pullbackDAdd phi vs dm1 dm2 =
+  evalD vs (pullbackD phi $ dm1 <> dm2) ==
+    evalD vs (pullbackD phi dm1 <> pullbackD phi dm2)
+
+type PullbackDMult p n m = Phi n m -> C m -> Vec p (V n) -> D p m -> Bool
+pullbackDMult :: (SNatI n, SNatI m) => PullbackDMult p n m
+pullbackDMult phi cm vs dm =
+  evalD vs (mmult (pullbackC phi cm) . pullbackD phi $ dm) ==
+    evalD vs (pullbackD phi . mmult cm $ dm)
+
+
 --pusforward
 type PushforwardDef n m = Phi n m -> Vp n -> C m -> Bool
 pushforwardDef :: (SNatI n, SNatI m) => PushforwardDef n m
@@ -78,7 +103,7 @@ main = hspec $ do
   describe "Tests for Phi, PullbackC:" $ do
     prop "pullbackC works as expected for functions"
       (pullbackDefC :: PullbackDefC N.Nat3 N.Nat2)
-    prop "pullback preserves identity"
+    prop "pullbackC preserves identity"
       (pullbackCId :: PullbackCId N.Nat3)
     prop "pullbackC preserves composition"
       (pullbackCComp :: PullbackCComp N.Nat1 N.Nat2 N.Nat2)
@@ -86,6 +111,17 @@ main = hspec $ do
       (pullbackCMult :: PullbackCMult N.Nat3 N.Nat2)
     prop "pullbackC is preserves addition"
       (pullbackCAdd :: PullbackCAdd N.Nat2 N.Nat3)
+
+  describe "Tests for Phi, PullbackD:" $ do
+    prop "pullbackD preserves identity"
+      (pullbackDId :: PullbackDId N.Nat2 N.Nat3)
+    prop "pullbackD preserves composition"
+      (pullbackDComp :: PullbackDComp N.Nat1 N.Nat1 N.Nat1 N.Nat1)
+    prop "pullbackD is preserves multiplication"
+      (pullbackDMult :: PullbackDMult N.Nat1 N.Nat1 N.Nat2)
+    prop "pullbackD is preserves addition"
+      (pullbackDAdd :: PullbackDAdd N.Nat1 N.Nat2 N.Nat3)
+
 
 
   describe "Tests for Phi, Pushforward:" $ do
