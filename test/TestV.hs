@@ -6,11 +6,12 @@ import Data.Fin ( Fin(..) )
 import qualified Data.Fin as F
 import Data.List.NonEmpty ( NonEmpty(..) )
 import Test.QuickCheck
+import Test.Hspec
+import Test.Hspec.QuickCheck
 import Typeclasses
 import R
 import C
 import V
-import TestHelpers
 
 -- V
 type OneV n   = V n -> Bool
@@ -187,67 +188,66 @@ leibnizRuleVp c1 c2 v p = let vp = Vp p v
 
 
 main :: IO ()
-main = do
-  putStrLn "Tests for V:"
-  qc "semigroup symmetric"
-    (semigroupSymmetricV :: SemigroupSymmetricV N.Nat3)
-  qc "semigroup associative"
-    (semigroupAssociatesV :: SemigroupAssociatesV N.Nat3)
-  qc "monoid left identity"
-    (monoidLeftIdV :: MonoidLeftIdV N.Nat3)
-  qc "group has inverses"
-    (groupInvV :: GroupInvV N.Nat3)
-  qc "module ring addition distributive"
-    (moduleAddDistributes1V :: ModuleAddDistributes1V N.Nat3)
-  qc "module group addition distributive"
-    (moduleAddDistributes2V :: ModuleAddDistributes2V N.Nat3)
-  qc "module multiplication associative"
-    (moduleMultAssociatesV :: ModuleMultAssociatesV N.Nat3)
-  qc "module multiplication by 1 is identity"
-    (module1IdV :: Module1IdV N.Nat3)
-  qc "addition linear"
-    (linearAddV :: LinearAddV N.Nat3)
-  qc "multiplication by rationals linear"
-    (linearMultV :: LinearMultV N.Nat3)
-  qc "Leibniz rule"
-    (leibnizRuleV :: LeibnizRuleV N.Nat3)
+main = hspec $ do
+  describe "Tests for V, V:" $ do
+    prop "semigroup symmetric"
+      (semigroupSymmetricV :: SemigroupSymmetricV N.Nat3)
+    prop "semigroup associative"
+      (semigroupAssociatesV :: SemigroupAssociatesV N.Nat3)
+    prop "monoid left identity"
+      (monoidLeftIdV :: MonoidLeftIdV N.Nat3)
+    prop "group has inverses"
+      (groupInvV :: GroupInvV N.Nat3)
+    prop "module ring addition distributive"
+      (moduleAddDistributes1V :: ModuleAddDistributes1V N.Nat3)
+    prop "module group addition distributive"
+      (moduleAddDistributes2V :: ModuleAddDistributes2V N.Nat3)
+    prop "module multiplication associative"
+      (moduleMultAssociatesV :: ModuleMultAssociatesV N.Nat3)
+    prop "module multiplication by 1 is identity"
+      (module1IdV :: Module1IdV N.Nat3)
+    prop "addition linear"
+      (linearAddV :: LinearAddV N.Nat3)
+    prop "multiplication by rationals linear"
+      (linearMultV :: LinearMultV N.Nat3)
+    prop "Leibniz rule"
+      (leibnizRuleV :: LeibnizRuleV N.Nat3)
 
-  putStrLn "Tests for Lie bracket:"
-  qc "Lie bracket satisfies the definition"
-    (lieBracketLeibniz :: LieBracketLeibniz N.Nat3)
-  qc "Lie bracket antisymmetric"
-    (lieBracketAntisymmetric :: LieBracketAntisymmetric N.Nat3)
-  qc "Lie bracket linear in the first argument"
-    (lieBracketBilinear1 :: LieBracketBilinear1 N.Nat3)
-  qc "Lie bracket linear in the second argument"
-    (lieBracketBilinear2 :: LieBracketBilinear2 N.Nat3)
-  qc "Lie bracket satisfies jacobi identity"
-    (lieBracketJacobi :: LieBracketJacobi N.Nat3)
+  describe "Tests for V, Lie bracket:" $ do
+    prop "Lie bracket satisfies the definition"
+      (lieBracketLeibniz :: LieBracketLeibniz N.Nat3)
+    prop "Lie bracket antisymmetric"
+      (lieBracketAntisymmetric :: LieBracketAntisymmetric N.Nat3)
+    prop "Lie bracket linear in the first argument"
+      (lieBracketBilinear1 :: LieBracketBilinear1 N.Nat3)
+    prop "Lie bracket linear in the second argument"
+      (lieBracketBilinear2 :: LieBracketBilinear2 N.Nat3)
+    prop "Lie bracket satisfies jacobi identity"
+      (lieBracketJacobi :: LieBracketJacobi N.Nat3)
 
-  putStrLn "Tests for Vp:"
-  qc "semigroup symmetric"
-    (semigroupSymmetricVp :: SemigroupSymmetricVp N.Nat3)
-  qc "semigroup associative"
-    (semigroupAssociatesVp :: SemigroupAssociatesVp N.Nat3)
---  qc "monoid left identity"
---    (monoidLeftIdVp :: MonoidLeftIdVp N.Nat3)
---  qc "group has inverses"
---    (groupInvVp :: GroupInvVp N.Nat3)
-  qc "module ring addition distributive"
-    (moduleAddDistributes1Vp :: ModuleAddDistributes1Vp N.Nat3)
-  qc "module group addition distributive"
-    (moduleAddDistributes2Vp :: ModuleAddDistributes2Vp N.Nat3)
-  qc "module multiplication associative"
-    (moduleMultAssociatesVp :: ModuleMultAssociatesVp N.Nat3)
-  qc "module multiplication by 1 is identity"
-    (module1IdVp :: Module1IdVp N.Nat3)
-  qc "addition linear"
-    (linearAddVp :: LinearAddVp N.Nat3)
-  qc "multiplication by rationals linear"
-    (linearMultVp :: LinearMultVp N.Nat3)
-  qc "Leibniz rule"
-    (leibnizRuleVp :: LeibnizRuleVp N.Nat3)
-
+  describe "Tests for V, Vp:" $ do
+    prop "semigroup symmetric"
+      (semigroupSymmetricVp :: SemigroupSymmetricVp N.Nat3)
+    prop "semigroup associative"
+      (semigroupAssociatesVp :: SemigroupAssociatesVp N.Nat3)
+--    prop "monoid left identity"
+--      (monoidLeftIdVp :: MonoidLeftIdVp N.Nat3)
+--    prop "group has inverses"
+--      (groupInvVp :: GroupInvVp N.Nat3)
+    prop "module ring addition distributive"
+      (moduleAddDistributes1Vp :: ModuleAddDistributes1Vp N.Nat3)
+    prop "module group addition distributive"
+      (moduleAddDistributes2Vp :: ModuleAddDistributes2Vp N.Nat3)
+    prop "module multiplication associative"
+      (moduleMultAssociatesVp :: ModuleMultAssociatesVp N.Nat3)
+    prop "module multiplication by 1 is identity"
+      (module1IdVp :: Module1IdVp N.Nat3)
+    prop "addition linear"
+      (linearAddVp :: LinearAddVp N.Nat3)
+    prop "multiplication by rationals linear"
+      (linearMultVp :: LinearMultVp N.Nat3)
+    prop "Leibniz rule"
+      (leibnizRuleVp :: LeibnizRuleVp N.Nat3)
 
 
 -- rename for exporting

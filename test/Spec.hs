@@ -9,12 +9,8 @@ import TestPhi
 main :: IO ()
 main = do
   mainR
-  putStrLn ""
   mainC
-  putStrLn ""
   mainV
-  putStrLn ""
   mainD
-  putStrLn ""
   mainPhi
 

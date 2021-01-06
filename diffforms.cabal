@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4138a7c1ae8ad5812efab433ff7b5a8c7a13ddcb11c129f0f58471d7fe23f76f
+-- hash: efd59bd21021903cdc245c059cbbca7a7c4128db5937b320e7b68a051cc8c6b2
 
 name:           diffforms
 version:        0.9.0.0
@@ -67,7 +67,6 @@ test-suite diffforms-test
   other-modules:
       TestC
       TestD
-      TestHelpers
       TestPhi
       TestR
       TestV
@@ -81,5 +80,6 @@ test-suite diffforms-test
     , containers
     , diffforms
     , fin
+    , hspec
     , vec
   default-language: Haskell2010

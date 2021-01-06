@@ -10,12 +10,13 @@ import Data.Fin ( Fin(..) )
 import qualified Data.Fin as F
 import Data.List.NonEmpty ( NonEmpty(..) )
 import Test.QuickCheck
+import Test.Hspec
+import Test.Hspec.QuickCheck
 import Typeclasses
 import R
 import C
 import V
 import D
-import TestHelpers
 
 -- D
 type OneD p n   = D p n -> Bool
@@ -124,54 +125,54 @@ dTwiceZero vs d' = evalD vs (d . d $ d') == mempty
 
 
 main :: IO ()
-main = do
-  putStrLn "Tests for D:"
-  qc "semigroup symmetric"
-    (semigroupSymmetricD :: SemigroupSymmetricD N.Nat2 N.Nat3)
-  qc "semigroup associative"
-    (semigroupAssociatesD :: SemigroupAssociatesD N.Nat2 N.Nat3)
-  qc "monoid left identity"
-    (monoidLeftIdD :: MonoidLeftIdD N.Nat2 N.Nat3)
-  qc "group has inverses"
-    (groupInvD :: GroupInvD N.Nat2 N.Nat3)
-  qc "module ring addition distributive"
-    (moduleAddDistributes1D :: ModuleAddDistributes1D N.Nat2 N.Nat3)
-  qc "module group addition distributive"
-    (moduleAddDistributes2D :: ModuleAddDistributes2D N.Nat2 N.Nat3)
-  qc "module multiplication associative"
-    (moduleMultAssociatesD :: ModuleMultAssociatesD N.Nat2 N.Nat3)
-  qc "module multiplication by 1 is identity"
-    (module1IdD :: Module1IdD N.Nat2 N.Nat3)
-  qc "addition linear"
-    (linearAddD :: LinearAddD N.Nat2 N.Nat3)
-  qc "multiplication by C n linear"
-    (linearMultD :: LinearMultD N.Nat2 N.Nat3)
+main = hspec $ do
+  describe "Tests for D, D:" $ do
+    prop "semigroup symmetric"
+      (semigroupSymmetricD :: SemigroupSymmetricD N.Nat2 N.Nat3)
+    prop "semigroup associative"
+      (semigroupAssociatesD :: SemigroupAssociatesD N.Nat2 N.Nat3)
+    prop "monoid left identity"
+      (monoidLeftIdD :: MonoidLeftIdD N.Nat2 N.Nat3)
+    prop "group has inverses"
+      (groupInvD :: GroupInvD N.Nat2 N.Nat3)
+    prop "module ring addition distributive"
+      (moduleAddDistributes1D :: ModuleAddDistributes1D N.Nat2 N.Nat3)
+    prop "module group addition distributive"
+      (moduleAddDistributes2D :: ModuleAddDistributes2D N.Nat2 N.Nat3)
+    prop "module multiplication associative"
+      (moduleMultAssociatesD :: ModuleMultAssociatesD N.Nat2 N.Nat3)
+    prop "module multiplication by 1 is identity"
+      (module1IdD :: Module1IdD N.Nat2 N.Nat3)
+    prop "addition linear"
+      (linearAddD :: LinearAddD N.Nat2 N.Nat3)
+    prop "multiplication by C n linear"
+      (linearMultD :: LinearMultD N.Nat2 N.Nat3)
 
-  putStrLn "Tests for exterior product:"
-  qc "exterior product super commutative 1"
-    (extProdSuperComm 1 :: ExtProdSuperComm N.Nat2 N.Nat5)
-  qc "exterior product super commutative 2"
-    (extProdSuperComm (-1) :: ExtProdSuperComm N.Nat3 N.Nat7)
+  describe "Tests for D, exterior product:" $ do
+    prop "exterior product super commutative 1"
+      (extProdSuperComm 1 :: ExtProdSuperComm N.Nat2 N.Nat5)
+    prop "exterior product super commutative 2"
+      (extProdSuperComm (-1) :: ExtProdSuperComm N.Nat3 N.Nat7)
 
-  putStrLn "Tests for d0:"
-  qc "addition linear"
-    (d0LinearAdd :: D0LinearAdd N.Nat3)
-  qc "multiplication linear"
-    (d0LinearMult :: D0LinearMult N.Nat3)
-  qc "leibniz rule"
-    (d0LeibnizRule :: D0LeibnizRule N.Nat3)
+  describe "Tests for D, d0:" $ do
+    prop "addition linear"
+      (d0LinearAdd :: D0LinearAdd N.Nat3)
+    prop "multiplication linear"
+      (d0LinearMult :: D0LinearMult N.Nat3)
+    prop "leibniz rule"
+      (d0LeibnizRule :: D0LeibnizRule N.Nat3)
 
-  putStrLn "Tests for d:"
-  qc "addition linear"
-    (dLinearAdd :: DLinearAdd N.Nat2 N.Nat3)
-  qc "multiplication linear"
-    (dLinearMult :: DLinearMult N.Nat2 N.Nat3)
-  qc "leibniz rule1"
-    (dLeibnizRule 1 :: DLeibnizRule N.Nat3 N.Nat7)
-  qc "leibniz rule2"
-    (dLeibnizRule (-1) :: DLeibnizRule N.Nat2 N.Nat7)
-  qc "dd = 0"
-    (dTwiceZero :: DTwiceZero N.Nat1 N.Nat3)
+  describe "Tests for D, d:" $ do
+    prop "addition linear"
+      (dLinearAdd :: DLinearAdd N.Nat2 N.Nat3)
+    prop "multiplication linear"
+      (dLinearMult :: DLinearMult N.Nat2 N.Nat3)
+    prop "leibniz rule1"
+      (dLeibnizRule 1 :: DLeibnizRule N.Nat3 N.Nat7)
+    prop "leibniz rule2"
+      (dLeibnizRule (-1) :: DLeibnizRule N.Nat2 N.Nat7)
+    prop "dd = 0"
+      (dTwiceZero :: DTwiceZero N.Nat1 N.Nat3)
 
 -- rename for exporting
 mainD = main
