@@ -27,7 +27,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: $HOME/.stack
-          key: ubuntu-20.04
+          key: ubuntu-20.04-${{ secrets.CACHE_VERSION }}
       - name: Check
         run: stack --no-terminal --install-ghc test
 
