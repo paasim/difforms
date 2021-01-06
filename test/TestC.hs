@@ -1,4 +1,4 @@
-module TestC ( mainC ) where
+module TestC ( testC ) where
 
 import qualified Data.Type.Nat as N
 import Data.Fin ( Fin(..) )
@@ -92,8 +92,8 @@ amultDistributes2 i1 i2 c = let d1 = fromIntegral i1
                                 d2 = fromIntegral i2
   in amult (d1 + d2) c == amult d1 c <> amult d2 c
 
-main :: IO ()
-main = hspec $ do
+testC :: IO ()
+testC = hspec $ do
   describe "Tests for C, Term:" $ do
     prop "evaluating lifted double is identity"
       (evalLiftedTerm :: EvalLiftedTerm N.Nat3)
@@ -133,8 +133,4 @@ main = hspec $ do
       (amultDistributes1 :: Int -> TwoC N.Nat3)
     prop "algebra multiplication distributive in terms"
       (amultDistributes2 :: Int -> Int -> OneC N.Nat3)
-
-
--- rename for exporting
-mainC = main
 

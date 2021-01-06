@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
-module TestD ( mainD ) where
+module TestD ( testD ) where
 
 import qualified Data.Type.Nat as N
 import Data.Type.Nat ( Nat(..) )
@@ -124,8 +124,8 @@ dTwiceZero :: N.SNatI n => DTwiceZero p n
 dTwiceZero vs d' = evalD vs (d . d $ d') == mempty
 
 
-main :: IO ()
-main = hspec $ do
+testD :: IO ()
+testD = hspec $ do
   describe "Tests for D, D:" $ do
     prop "semigroup symmetric"
       (semigroupSymmetricD :: SemigroupSymmetricD N.Nat2 N.Nat3)
@@ -173,7 +173,4 @@ main = hspec $ do
       (dLeibnizRule (-1) :: DLeibnizRule N.Nat2 N.Nat7)
     prop "dd = 0"
       (dTwiceZero :: DTwiceZero N.Nat1 N.Nat3)
-
--- rename for exporting
-mainD = main
 

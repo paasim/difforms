@@ -8,9 +8,9 @@ import TestPhi
 
 main :: IO ()
 main = do
-  mainR
-  mainC
-  mainV
-  mainD
-  mainPhi
+  testR
+  testC
+  testV
+  testD
+  testPhi
 

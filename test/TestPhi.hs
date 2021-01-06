@@ -1,4 +1,4 @@
-module TestPhi ( mainPhi ) where
+module TestPhi ( testPhi ) where
 
 import Data.Type.Nat ( SNatI )
 import Data.Vec.Lazy ( Vec(..) )
@@ -98,8 +98,8 @@ pushforwardMult :: (SNatI n, SNatI m) => PushforwardMult n m
 pushforwardMult phi r vp c = evalVp c (vpmult r . pushforward phi $ vp)
                            == evalVp c (pushforward phi . vpmult r $ vp)
 
-main :: IO ()
-main = hspec $ do
+testPhi :: IO ()
+testPhi = hspec $ do
   describe "Tests for Phi, PullbackC:" $ do
     prop "pullbackC works as expected for functions"
       (pullbackDefC :: PullbackDefC N.Nat3 N.Nat2)
@@ -123,7 +123,6 @@ main = hspec $ do
       (pullbackDAdd :: PullbackDAdd N.Nat1 N.Nat2 N.Nat3)
 
 
-
   describe "Tests for Phi, Pushforward:" $ do
     prop "pushforward works as expected"
       (pushforwardDef :: PushforwardDef N.Nat3 N.Nat2)
@@ -135,7 +134,4 @@ main = hspec $ do
       (pushforwardMult :: PushforwardMult N.Nat3 N.Nat2)
     prop "pushforward is preserves addition"
       (pushforwardAdd :: PushforwardAdd N.Nat2 N.Nat3)
-
--- rename for exporting
-mainPhi = main
 

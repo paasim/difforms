@@ -1,4 +1,4 @@
-module TestV ( mainV ) where
+module TestV ( testV ) where
 
 import qualified Data.Type.Nat as N
 import Data.Vec.Lazy ( Vec(..) )
@@ -187,8 +187,8 @@ leibnizRuleVp c1 c2 v p = let vp = Vp p v
                                         (evalC p c1 * evalVp c2 vp)
 
 
-main :: IO ()
-main = hspec $ do
+testV :: IO ()
+testV = hspec $ do
   describe "Tests for V, V:" $ do
     prop "semigroup symmetric"
       (semigroupSymmetricV :: SemigroupSymmetricV N.Nat3)
@@ -248,8 +248,4 @@ main = hspec $ do
       (linearMultVp :: LinearMultVp N.Nat3)
     prop "Leibniz rule"
       (leibnizRuleVp :: LeibnizRuleVp N.Nat3)
-
-
--- rename for exporting
-mainV = main
 

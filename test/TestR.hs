@@ -1,4 +1,4 @@
-module TestR ( mainR ) where
+module TestR ( testR ) where
 
 import qualified Data.Type.Nat as N
 import Data.Fin ( Fin(..) )
@@ -59,8 +59,8 @@ rowAppendProdWithCoordVec r m = vecMatProduct (coordVec F.fin0) (appendRow r m) 
 colAppendProdWithCoordVec :: (N.SNatI n, N.SNatI m) => MatR n m
 colAppendProdWithCoordVec r m = matVecProduct (appendCol r m) (coordVec F.fin0) == r
 
-main :: IO ()
-main = hspec $ do
+testR :: IO ()
+testR = hspec $ do
   describe "Tests for R, R:" $ do
     prop "semigroup is symmetric"
       (semigroupSymmetric :: TwoR N.Nat3)
@@ -87,8 +87,4 @@ main = hspec $ do
       (rowAppendProdWithCoordVec :: RMat N.Nat5 N.Nat3)
     prop "appending a col and extracting it is identity"
       (colAppendProdWithCoordVec :: MatR N.Nat5 N.Nat3)
-
-
--- rename for exporting
-mainR = main
 
