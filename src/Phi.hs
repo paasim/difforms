@@ -34,7 +34,7 @@ evalPhi rn = R . fmap (evalC rn) . phiComp
 pullbackTerm :: Phi n m -> Term m -> C n
 pullbackTerm phi (Term [] d) = liftToC . liftToTerm $ d
 pullbackTerm phi (Term (Var n exp : vs) d) =
-  sappend (nthPower (exp+1) $ phiComp phi V.! n) (pullbackTerm phi $ Term vs d)
+  sappend (nthPower (S exp) $ phiComp phi V.! n) (pullbackTerm phi $ Term vs d)
 
 -- precomposes f with the manifold map
 pullbackC :: Phi n m -> C m -> C n
@@ -46,7 +46,7 @@ pushforward phi (Vp p v) = Vp (evalPhi p phi)
                               (x $ vecMatProduct (R v) (jacobianAt phi p))
 
 idPhi :: SNatI n => Phi n n
-idPhi = Phi . fmap (\n -> liftToC . mkTerm [Var n 0] $ 1) $ V.universe
+idPhi = Phi . fmap (\n -> liftToC . mkTerm [Var n Z] $ 1) $ V.universe
 
 compPhi :: (SNatI n, SNatI m, SNatI l) => Phi n m -> Phi m l -> Phi n l
 compPhi phiNM = Phi . fmap (pullbackC phiNM) . phiComp
