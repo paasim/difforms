@@ -8,7 +8,7 @@ import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
 import Test.QuickCheck
-import Typeclasses
+import Common
 import R
 import C
 
@@ -46,15 +46,15 @@ lieBracket (V v) (V w) = (V . fmap (pdSum v) $ w) <> ginv (V . fmap (pdSum w) $ 
 
 
 -- Tangent vector at point p
-data Vp n = Vp { vpP :: R n, vpV :: Vec n Rational }
+data Vp n = Vp { vpP :: R n, vpV :: Vec n Number }
 
 instance Show (Vp n) where
   show (Vp p v) = "Vp: " <> show (R v) <> "\n at: " <> show p
 
 instance SNatI n => Arbitrary (Vp n) where
-  arbitrary = Vp <$> arbitrary <*> genSimpleRationalVec
+  arbitrary = Vp <$> arbitrary <*> arbitrary
 
-evalVp :: SNatI n => C n -> Vp n -> Rational
+evalVp :: SNatI n => C n -> Vp n -> Number
 evalVp c (Vp p v) = dotProduct (R v) . R . fmap (evalC p . partialD c) $ V.universe
 
 -- basically a semigroup but this may fail if the base points are not the same...
@@ -63,7 +63,7 @@ vpappend :: Vp n -> Vp n -> Maybe (Vp n)
 vpappend (Vp p1 v1) (Vp p2 v2) = if p1 /= p2 then Nothing else Just . Vp p1 . x $ R v1 <> R v2
 
 -- this is the ModuleQ-multiplication
-vpmult :: SNatI n => Rational -> Vp n -> Vp n
+vpmult :: SNatI n => Number -> Vp n -> Vp n
 vpmult d (Vp p v) = Vp p $ fmap (* d) v
 
 vToVp :: V n -> R n -> Vp n

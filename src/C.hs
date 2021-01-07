@@ -3,7 +3,7 @@
 module C where
 
 import Data.Fin ( Fin(..) )
-import Data.Type.Nat ( Nat(..), SNatI, toNatural )
+import Data.Type.Nat ( Nat(..), SNatI )
 import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
 import Data.List.NonEmpty ( NonEmpty(..), (<|) )
@@ -11,28 +11,28 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.List as L
 import Data.Maybe ( fromMaybe )
 import Test.QuickCheck
-import Typeclasses
+import Common
 import R
 
 -- A variable x_i in n dimensions where
 -- i < n
 -- varExp i means x^(i+1) to disallow zero-powers
-data Var n = Var { varDim :: Fin n, varExp :: Nat } deriving (Eq, Ord)
+data Var n = Var { varDim :: Fin n, varExp :: Word } deriving (Eq, Ord)
 
 instance Show (Var n) where
-  show (Var n Z)    = "x_" <> show n
-  show (Var n exp)  = "x_" <> show n <> "^" <> show (S exp)
+  show (Var n 0)    = "x_" <> show n
+  show (Var n exp)  = "x_" <> show n <> "^" <> show (exp + 1)
 
 instance SNatI n => Arbitrary (Var n) where
   arbitrary = Var <$> (elements . V.toList $ V.universe)
                   <*> elements [0..5]
 
-evalVar :: R n -> Var n -> Rational
-evalVar r (Var ind exp) = (x r V.! ind) ^ (toNatural $ S exp)
+evalVar :: R n -> Var n -> Number
+evalVar r (Var ind exp) = (x r V.! ind) ^ (exp + 1)
 
 
 -- A product of variables with a coefficient
-data Term n = Term { termVars :: [Var n], termCoeff :: Rational } deriving (Eq, Ord)
+data Term n = Term { termVars :: [Var n], termCoeff :: Number } deriving (Eq, Ord)
 
 instance Show (Term n) where
   show (Term [] d) = show d
@@ -49,17 +49,16 @@ instance Monoid (Term n) where
 
 instance SNatI n => Arbitrary (Term n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkTerm <$> resize 2 (listOf arbitrary)
-                     <*> genSimpleRational
+  arbitrary = mkTerm <$> resize 2 (listOf arbitrary) <*> arbitrary
 
-liftToTerm :: Rational -> Term n
+liftToTerm :: Number -> Term n
 liftToTerm = Term []
 
 -- A 'smart constructor' that removes variables
 -- when the coefficient is zero, combines variables
 -- with same dimension and sorts the variables
 -- in ascending order for simpler comparison and printing
-mkTerm :: [Var n] -> Rational -> Term n
+mkTerm :: [Var n] -> Number -> Term n
 mkTerm _ 0 = liftToTerm 0
 mkTerm vs d = Term (multiplySimilarTerms . L.sort $ vs) d where
     -- [x, x, y] -> [x^2, y]
@@ -68,10 +67,10 @@ mkTerm vs d = Term (multiplySimilarTerms . L.sort $ vs) d where
   multiplySimilarTerms [t]                                = [t]
   multiplySimilarTerms (Var n1 exp1 : Var n2 exp2 : vs) = if n1 == n2
     -- +1 is because of the shifted representation for the exponents
-    then multiplySimilarTerms $ Var n1 (S exp1+exp2) : vs
+    then multiplySimilarTerms $ Var n1 (exp1+exp2+1) : vs
     else Var n1 exp1 : multiplySimilarTerms (Var n2 exp2 : vs)
 
-evalTerm :: R n -> Term n -> Rational
+evalTerm :: R n -> Term n -> Number
 evalTerm _ (Term [] d)     = d
 evalTerm r (Term (v:vs) d) = evalVar r v * evalTerm r (Term vs d)
 
@@ -137,7 +136,7 @@ mkC t ts = neToC . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
   filterZeros = fromMaybe (liftToTerm 0 :| []) . NE.nonEmpty . NE.filter (liftToTerm 0 /=)
   neToC (t :| ts) = Terms t ts
 
-evalC :: R n -> C n -> Rational
+evalC :: R n -> C n -> Number
 evalC r (Terms t1 [])      = evalTerm r t1
 evalC r (Terms t1 (t2:ts)) = evalTerm r t1 + evalC r (Terms t2 ts)
 
@@ -147,11 +146,11 @@ partialDTerm (Term [] _) n = liftToC . liftToTerm $ 0
 partialDTerm (Term (Var ind exp : vs) d) n =
   let f = liftToC $ Term [Var ind exp] 1
       g = liftToC $ Term vs d
-      df = case (n == ind, exp) of
+      df = case (n == ind, exp == 0) of
         (False, _)   -> liftToC . liftToTerm $ 0
-        (True, Z) -> liftToC . liftToTerm $ 1
+        (True, True) -> liftToC . liftToTerm $ 1
         -- exp+1 because exp is one lower than the exponent
-        (True, (S exp')) -> liftToC . Term [Var ind exp'] $ fromIntegral (S (S exp'))
+        (True, False) -> liftToC . Term [Var ind (exp-1)] $ fromIntegral exp + 1
       dg = partialDTerm (Term vs d) n
   -- f, g, df are Term, dg is a C
   in sappend df g <> sappend f dg
@@ -168,7 +167,7 @@ gradient c = fmap (partialD c) V.universe
 gradientAt :: SNatI n => R n -> C n -> R n
 gradientAt rn = R . fmap (evalC rn) . gradient
 
-nthPower :: Nat -> C n -> C n
-nthPower Z     _ = sempty
-nthPower (S n) t = sappend t $ nthPower n t
+nthPower :: Word -> C n -> C n
+nthPower 0 _ = sempty
+nthPower n t = sappend t $ nthPower (n-1) t
 

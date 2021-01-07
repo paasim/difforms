@@ -7,7 +7,7 @@ import Data.List.NonEmpty ( NonEmpty(..) )
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Typeclasses
+import Common
 import R
 import C
 
@@ -18,11 +18,11 @@ type OneTerm n   = Term n -> Bool
 type TwoTerm n   = Term n -> OneTerm n
 type ThreeTerm n = Term n -> TwoTerm n
 
-type EvalLiftedTerm n = Rational -> R n -> Bool
+type EvalLiftedTerm n = Number -> R n -> Bool
 evalLiftedTerm :: EvalLiftedTerm n
 evalLiftedTerm d r = evalTerm r (liftToTerm d) == d
 
-mkTermIsIdempotent :: Rational -> [Var n] -> Bool
+mkTermIsIdempotent :: Number -> [Var n] -> Bool
 mkTermIsIdempotent d vars = let t1 = mkTerm vars d
                             in t1 == mkTerm (termVars t1) (termCoeff t1)
 

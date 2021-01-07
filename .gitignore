@@ -6,3 +6,4 @@ stack.yaml.lock
 report.html
 temp/*
 src/Examples.hs
+*.prof

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: efd59bd21021903cdc245c059cbbca7a7c4128db5937b320e7b68a051cc8c6b2
+-- hash: ff31f2f4985ca2b8c0547a35aecb96fdeb0ed9b9a17b665babb0dc330a8d073d
 
 name:           diffforms
 version:        0.9.0.0
@@ -28,10 +28,10 @@ source-repository head
 library
   exposed-modules:
       C
+      Common
       D
       Phi
       R
-      Typeclasses
       V
   other-modules:
       Paths_diffforms

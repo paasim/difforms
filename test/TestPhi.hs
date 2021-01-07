@@ -6,7 +6,7 @@ import qualified Data.Type.Nat as N
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Typeclasses
+import Common
 import R
 import C
 import V
@@ -35,7 +35,7 @@ pullbackCAdd :: (SNatI n, SNatI m) => PullbackCAdd n m
 pullbackCAdd phi cm1 cm2 =
   pullbackC phi (cm1 <> cm2) == pullbackC phi cm1 <> pullbackC phi cm2
 
-type PullbackCMult n m = Phi n m -> Rational -> R n -> C m -> Bool
+type PullbackCMult n m = Phi n m -> Number -> R n -> C m -> Bool
 pullbackCMult :: (SNatI n, SNatI m) => PullbackCMult n m
 pullbackCMult phi r rn cm =
   (amult r . pullbackC phi) cm == (pullbackC phi . amult r) cm
@@ -85,7 +85,7 @@ pushforwardComp phiNM phiML vpn cl =
     evalVp cl (pushforward phiML . pushforward phiNM $ vpn)
 
 -- pushforward is linear
-type PushforwardAdd n m = Phi n m -> R n -> Vec n Rational -> Vec n Rational -> C m -> Bool
+type PushforwardAdd n m = Phi n m -> R n -> Vec n Number -> Vec n Number -> C m -> Bool
 pushforwardAdd :: (SNatI n, SNatI m) => PushforwardAdd n m
 pushforwardAdd phi p v1 v2 c =
   let vp1 = Vp p v1
@@ -93,7 +93,7 @@ pushforwardAdd phi p v1 v2 c =
  in fmap (evalVp c . pushforward phi) (vpappend vp1 vp2)
       == fmap (evalVp c) (vpappend (pushforward phi vp1) (pushforward phi vp2))
 
-type PushforwardMult n m = Phi n m -> Rational -> Vp n -> C m -> Bool
+type PushforwardMult n m = Phi n m -> Number -> Vp n -> C m -> Bool
 pushforwardMult :: (SNatI n, SNatI m) => PushforwardMult n m
 pushforwardMult phi r vp c = evalVp c (vpmult r . pushforward phi $ vp)
                            == evalVp c (pushforward phi . vpmult r $ vp)

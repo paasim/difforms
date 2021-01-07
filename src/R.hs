@@ -10,14 +10,14 @@ import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
 import Data.Ratio ( (%) )
 import Test.QuickCheck
-import Typeclasses
+import Common
 
 -- R n, n-dimensional real numbers
-newtype R n = R { x :: Vec n Rational } deriving (Eq, Ord)
+newtype R n = R { x :: Vec n Number } deriving (Eq, Ord)
 
 instance Show (R n) where
   show (R x) = "(" <> show' x <> ")" where
-    show' :: Vec n Rational -> String
+    show' :: Vec n Number -> String
     show' VNil         = ""
     show' (xn ::: VNil) = show xn
     show' (xi ::: rest) = show xi <> ", " <> show' rest
@@ -32,36 +32,17 @@ instance SNatI n => Monoid (R n) where
 instance SNatI n => Group (R n) where
   ginv = R . fmap negate . x
 
-instance SNatI n => Module (R n) Rational where
+instance SNatI n => Module (R n) Number where
   mmult d = R . fmap (* d) . x
 
 instance SNatI n => Arbitrary (R n) where
-  arbitrary = R <$> genSimpleRationalVec
+  arbitrary = R <$> arbitrary
 
-dotProduct :: SNatI n => R n -> R n -> Rational
+dotProduct :: SNatI n => R n -> R n -> Number
 dotProduct r r' = sum . V.toList $ V.zipWith (*) (x r) (x r')
 
 coordVec :: SNatI n => Fin n -> R n
 coordVec n = R . V.imap (\i _ -> if i == n then 1 else 0) $ V.universe
-
--- needed for generating simpler rational numbers for easier debugging
--- these should be complex enough for checking the properties...
-newtype SimpleRational = SimpleRational (Int, Word)
-
-instance Arbitrary SimpleRational where
-  arbitrary = curry SimpleRational <$> arbitrary
-                                   <*> arbitrary
-
-simpleRationalToRational :: SimpleRational -> Rational
-simpleRationalToRational (SimpleRational (num, denom))
-  = toInteger num % toInteger (denom + 1)
-
-genSimpleRational :: Gen Rational
-genSimpleRational = simpleRationalToRational <$> arbitrary
-
-genSimpleRationalVec :: SNatI n => Gen (Vec n Rational)
-genSimpleRationalVec = fmap (fmap simpleRationalToRational) arbitrary
-
 
 -- Mat n m, Matrices as lists of m-dimensional real numbers
 newtype Mat n m = Mat { mat :: Vec n (R m) } deriving (Eq, Ord)
