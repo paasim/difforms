@@ -12,7 +12,7 @@ import Data.List.NonEmpty ( NonEmpty(..) )
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Typeclasses
+import Common
 import R
 import C
 import V
@@ -71,7 +71,7 @@ linearMultD :: N.SNatI n => LinearMultD p n
 linearMultD c vs d = evalD vs (mmult c d) == sappend c (evalD vs d)
 
 type ExtProdSuperComm p n = Vec (N.Plus p p) (V n) -> TwoD p n
-extProdSuperComm :: Rational -> ExtProdSuperComm p n
+extProdSuperComm :: Number -> ExtProdSuperComm p n
 extProdSuperComm r vs d1 d2 =
   let p = exteriorProduct d1 d2
       pFlip = exteriorProduct d2 d1
@@ -84,7 +84,7 @@ d0LinearAdd :: N.SNatI n => D0LinearAdd n
 d0LinearAdd v c1 c2 =
   evalD v (d0 c1 <> d0 c2) == evalD v (d0 $ c1 <> c2)
 
-type D0LinearMult n = Rational -> Vec N.Nat1 (V n) -> C n -> Bool
+type D0LinearMult n = Number -> Vec N.Nat1 (V n) -> C n -> Bool
 d0LinearMult :: N.SNatI n => D0LinearMult n
 d0LinearMult r v c =
   evalD v (d0 $ amult r c)
@@ -102,14 +102,14 @@ dLinearAdd :: N.SNatI n => DLinearAdd p n
 dLinearAdd vs d1 d2 =
   evalD vs (d $ d1 <> d2) == evalD vs (d d1) <> evalD vs (d d2)
 
-type DLinearMult p n = Rational -> Vec (S p) (V n) -> OneD p n
+type DLinearMult p n = Number -> Vec (S p) (V n) -> OneD p n
 dLinearMult :: N.SNatI n => DLinearMult p n
 dLinearMult r vs d' =
   evalD vs (d $ mmult (liftToC . liftToTerm $ r) d')
     == evalD vs (mmult (liftToC . liftToTerm $ r) $ d d')
 
 type DLeibnizRule p n = Vec (S (N.Plus p p)) (V n) -> TwoD p n
-dLeibnizRule :: N.SNatI n => Rational -> DLeibnizRule p n
+dLeibnizRule :: N.SNatI n => Number -> DLeibnizRule p n
 dLeibnizRule r vs d1 d2 =
   let dProd = d $ exteriorProduct d1 d2
       dd1 = d d1
@@ -150,9 +150,9 @@ testD = hspec $ do
 
   describe "Tests for D, exterior product:" $ do
     prop "exterior product super commutative 1"
-      (extProdSuperComm 1 :: ExtProdSuperComm N.Nat2 N.Nat5)
+      (extProdSuperComm (Number 1) :: ExtProdSuperComm N.Nat2 N.Nat5)
     prop "exterior product super commutative 2"
-      (extProdSuperComm (-1) :: ExtProdSuperComm N.Nat3 N.Nat7)
+      (extProdSuperComm (Number $ -1) :: ExtProdSuperComm N.Nat3 N.Nat7)
 
   describe "Tests for D, d0:" $ do
     prop "addition linear"
@@ -168,9 +168,9 @@ testD = hspec $ do
     prop "multiplication linear"
       (dLinearMult :: DLinearMult N.Nat2 N.Nat3)
     prop "leibniz rule1"
-      (dLeibnizRule 1 :: DLeibnizRule N.Nat3 N.Nat7)
+      (dLeibnizRule (Number 1) :: DLeibnizRule N.Nat3 N.Nat7)
     prop "leibniz rule2"
-      (dLeibnizRule (-1) :: DLeibnizRule N.Nat2 N.Nat7)
+      (dLeibnizRule (Number $ -1) :: DLeibnizRule N.Nat2 N.Nat7)
     prop "dd = 0"
       (dTwiceZero :: DTwiceZero N.Nat1 N.Nat3)
 

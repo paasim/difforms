@@ -9,7 +9,7 @@ import qualified Data.Vec.Lazy as V
 import Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.List as L
 import Test.QuickCheck
-import Typeclasses
+import Common
 import R
 import C
 import V

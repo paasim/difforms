@@ -1,5 +1,12 @@
 {-# LANGUAGE FunctionalDependencies #-}
-module Typeclasses where
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+module Common where
+
+import Data.Type.Nat ( Nat(..), SNatI )
+import Data.Vec.Lazy ( Vec(..) )
+import Data.Ratio ( (%) )
+import Test.QuickCheck
+
 
 -- Definitions of Semirng, Semiring and Algebra
 
@@ -23,8 +30,20 @@ class Semirng g => Semiring g where
   sempty :: g
 
 -- Assumes that mutliplication in g is compatible with
--- multiplication in Rational in the sense that
+-- multiplication in Number in the sense that
 -- (amult a g) `sappend` (amult a' g') = amult (a*a') (g `sappend` g')
 class Semiring g => Algebra g where
-  amult :: Rational -> g -> g
+  amult :: Number -> g -> g
+
+
+newtype Number = Number Rational deriving (Eq, Ord, Num)
+
+instance Show Number where
+  show (Number r) = show r
+
+instance Arbitrary Number where
+  arbitrary = do
+    num <- arbitrary :: Gen Int
+    denom <- arbitrary :: Gen Word
+    return . Number $ toInteger num % toInteger (denom + 1)
 

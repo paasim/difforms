@@ -6,7 +6,7 @@ import qualified Data.Fin as F
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Typeclasses
+import Common
 import R
 
 -- Vectors
@@ -27,20 +27,20 @@ monoidLeftId r = (mempty <> r) == r
 groupInv :: N.SNatI n => OneR n
 groupInv r = r <> ginv r == mempty && ginv r <> r == mempty
 
-moduleAddDistributes1 :: N.SNatI n => Rational -> Rational -> OneR n
+moduleAddDistributes1 :: N.SNatI n => Number -> Number -> OneR n
 moduleAddDistributes1 d1 d2 r =
   mmult d1 r <> mmult d2 r == mmult (d1+d2) r
 
-moduleAddDistributes2 :: N.SNatI n => Rational -> TwoR n
+moduleAddDistributes2 :: N.SNatI n => Number -> TwoR n
 moduleAddDistributes2 d r1 r2 =
   mmult d r1 <> mmult d r2 == mmult d (r1 <> r2)
 
-moduleMultAssociates :: N.SNatI n => Rational -> Rational -> OneR n
+moduleMultAssociates :: N.SNatI n => Number -> Number -> OneR n
 moduleMultAssociates d1 d2 r =
   mmult d1 (mmult d2 r) == mmult (d1*d2) r
 
 module1Id :: N.SNatI n => OneR n
-module1Id r = mmult (1 :: Rational) r == r
+module1Id r = mmult (1 :: Number) r == r
 
 -- Matrices
 
@@ -72,11 +72,11 @@ testR = hspec $ do
     prop "group has inverses"
       (groupInv :: OneR N.Nat3)
     prop "module ring addition distributive"
-      (moduleAddDistributes1 :: Rational -> Rational -> OneR N.Nat3)
+      (moduleAddDistributes1 :: Number -> Number -> OneR N.Nat3)
     prop "module group addition distributive"
-      (moduleAddDistributes2 :: Rational -> TwoR N.Nat3)
+      (moduleAddDistributes2 :: Number -> TwoR N.Nat3)
     prop "module multiplication associative"
-      (moduleAddDistributes2 :: Rational -> TwoR N.Nat3)
+      (moduleAddDistributes2 :: Number -> TwoR N.Nat3)
     prop "module multiplication by 1 is identity"
       (module1Id :: OneR N.Nat3)
 

@@ -11,7 +11,7 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.List as L
 import Data.Maybe ( fromMaybe )
 import Test.QuickCheck
-import Typeclasses
+import Common
 import R
 
 -- A variable x_i in n dimensions where
@@ -27,12 +27,12 @@ instance SNatI n => Arbitrary (Var n) where
   arbitrary = Var <$> (elements . V.toList $ V.universe)
                   <*> elements [0..5]
 
-evalVar :: R n -> Var n -> Rational
+evalVar :: R n -> Var n -> Number
 evalVar r (Var ind exp) = (x r V.! ind) ^ (exp + 1)
 
 
 -- A product of variables with a coefficient
-data Term n = Term { termVars :: [Var n], termCoeff :: Rational } deriving (Eq, Ord)
+data Term n = Term { termVars :: [Var n], termCoeff :: Number } deriving (Eq, Ord)
 
 instance Show (Term n) where
   show (Term [] d) = show d
@@ -49,17 +49,16 @@ instance Monoid (Term n) where
 
 instance SNatI n => Arbitrary (Term n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkTerm <$> resize 2 (listOf arbitrary)
-                     <*> genSimpleRational
+  arbitrary = mkTerm <$> resize 2 (listOf arbitrary) <*> arbitrary
 
-liftToTerm :: Rational -> Term n
+liftToTerm :: Number -> Term n
 liftToTerm = Term []
 
 -- A 'smart constructor' that removes variables
 -- when the coefficient is zero, combines variables
 -- with same dimension and sorts the variables
 -- in ascending order for simpler comparison and printing
-mkTerm :: [Var n] -> Rational -> Term n
+mkTerm :: [Var n] -> Number -> Term n
 mkTerm _ 0 = liftToTerm 0
 mkTerm vs d = Term (multiplySimilarTerms . L.sort $ vs) d where
     -- [x, x, y] -> [x^2, y]
@@ -71,7 +70,7 @@ mkTerm vs d = Term (multiplySimilarTerms . L.sort $ vs) d where
     then multiplySimilarTerms $ Var n1 (exp1+exp2+1) : vs
     else Var n1 exp1 : multiplySimilarTerms (Var n2 exp2 : vs)
 
-evalTerm :: R n -> Term n -> Rational
+evalTerm :: R n -> Term n -> Number
 evalTerm _ (Term [] d)     = d
 evalTerm r (Term (v:vs) d) = evalVar r v * evalTerm r (Term vs d)
 
@@ -137,7 +136,7 @@ mkC t ts = neToC . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
   filterZeros = fromMaybe (liftToTerm 0 :| []) . NE.nonEmpty . NE.filter (liftToTerm 0 /=)
   neToC (t :| ts) = Terms t ts
 
-evalC :: R n -> C n -> Rational
+evalC :: R n -> C n -> Number
 evalC r (Terms t1 [])      = evalTerm r t1
 evalC r (Terms t1 (t2:ts)) = evalTerm r t1 + evalC r (Terms t2 ts)
 
