@@ -26,9 +26,9 @@ instance (SNatI n, SNatI m) => Show (Phi n m) where
 
 genSimpleC :: SNatI n => Gen (C n)
 genSimpleC = do
-  t1 <- arbitrary
---  t2 <- arbitrary
-  return $ mkC t1 []
+  t <- arbitrary
+  ts <- resize 1 arbitrary
+  return $ mkC t ts
 
 genSimpleCs :: (SNatI m, SNatI n) => Gen (Vec m (C n))
 genSimpleCs = traverse (\u -> genSimpleC) $ V.repeat ()
@@ -42,7 +42,7 @@ evalPhi rn = R . fmap (evalC rn) . phiComp
 
 
 pullbackTerm :: Phi n m -> Term m -> C n
-pullbackTerm phi ZeroTerm    = liftToC ZeroTerm
+pullbackTerm _ ZeroTerm      = liftToC ZeroTerm
 pullbackTerm phi (Term [] d) = liftToC . liftToTerm $ d
 pullbackTerm phi (Term (Var n exp : vs) d) =
   sappend (nthPower (exp+1) $ phiComp phi V.! n) (pullbackTerm phi $ Term vs d)
@@ -78,7 +78,7 @@ pullbackCovar :: SNatI n => Phi n m -> Covar m -> D (S Z) n
 pullbackCovar phi cv = d0 $ phiComp phi V.! covarDim cv
 
 pullbackCoterm :: SNatI n => Phi n m -> Coterm p m -> D p n
-pullbackCoterm _ ZeroCoterm = liftToD ZeroCoterm
+pullbackCoterm _ ZeroCoterm        = liftToD ZeroCoterm
 pullbackCoterm phi (Coterm VNil c) = liftToD . liftToCoterm . pullbackC phi $ c
 pullbackCoterm phi (Coterm (cv:::cvs) c) =
   exteriorProduct (pullbackCovar phi cv) . pullbackCoterm phi $ Coterm cvs c

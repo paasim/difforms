@@ -57,7 +57,7 @@ ctpMult c' (Coterm cvs c) = mkCoterm cvs $ sappend c' c
 
 instance (SNatI p, SNatI n) => Arbitrary (Coterm p n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkCoterm <$> resize 2 arbitrary <*> arbitrary
+  arbitrary = mkCoterm <$> arbitrary <*> arbitrary
 
 liftToCoterm :: C n -> Coterm Z n
 liftToCoterm = Coterm VNil
@@ -108,7 +108,7 @@ cotermVarsEq ct1 ct2 = cvs ct1 == cvs ct2 where
 cotermSum :: Coterm p n -> Coterm p n -> Coterm p n
 cotermSum ct             ZeroCoterm    = ct
 cotermSum ZeroCoterm     ct            = ct
-cotermSum (Coterm cvs c) (Coterm _ c') = if c <> c == mempty
+cotermSum (Coterm cvs c) (Coterm _ c') = if c <> c' == mempty
   then ZeroCoterm else Coterm cvs $ c <> c'
 
 
