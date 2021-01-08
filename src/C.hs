@@ -3,7 +3,7 @@
 module C where
 
 import Data.Fin ( Fin(..) )
-import Data.Type.Nat ( Nat(..), SNatI )
+import Data.Type.Nat ( Nat(..), SNatI, toNatural )
 import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
 import Data.List.NonEmpty ( NonEmpty(..), (<|) )
@@ -17,18 +17,18 @@ import R
 -- A variable x_i in n dimensions where
 -- i < n
 -- varExp i means x^(i+1) to disallow zero-powers
-data Var n = Var { varDim :: Fin n, varExp :: Word } deriving (Eq, Ord)
+data Var n = Var { varDim :: Fin n, varExp :: Nat } deriving (Eq, Ord)
 
 instance Show (Var n) where
-  show (Var n 0)    = "x_" <> show n
-  show (Var n exp)  = "x_" <> show n <> "^" <> show (exp + 1)
+  show (Var n Z)    = "x_" <> show n
+  show (Var n exp)  = "x_" <> show n <> "^" <> show (S exp)
 
 instance SNatI n => Arbitrary (Var n) where
   arbitrary = Var <$> (elements . V.toList $ V.universe)
-                  <*> elements [0..5]
+                  <*> resize 4 arbitrary
 
 evalVar :: R n -> Var n -> Number
-evalVar r (Var ind exp) = (x r V.! ind) ^ (exp + 1)
+evalVar r (Var ind exp) = (x r V.! ind) ^ (toNatural $ S exp)
 
 -- for constructing valid instances of Term
 varDimEq :: Var n -> Var n -> Bool
@@ -37,7 +37,7 @@ varDimEq v1 v2 = varDim v1 == varDim v2
 -- only sensible when n1 == n2
 -- +1 is because of the shifted representation for the exponents
 varProd :: Var n -> Var n -> Var n
-varProd (Var n1 exp1) (Var _ exp2) = Var n1 $ exp1 + exp2 + 1
+varProd (Var n1 exp1) (Var _ exp2) = Var n1 $ S exp1 + exp2
 
 
 -- A product of variables with a coefficient
@@ -168,11 +168,11 @@ partialDTerm (Term [] _) n = liftToC ZeroTerm
 partialDTerm (Term (Var ind exp : vs) d) n =
   let f = liftToC $ Term [Var ind exp] 1
       g = liftToC $ Term vs d
-      df = case (n == ind, exp == 0) of
-        (False, _)   -> liftToC ZeroTerm
-        (True, True) -> liftToC . liftToTerm $ 1
+      df = case (n == ind, exp) of
+        (False, _)    -> liftToC ZeroTerm
+        (True, Z)     -> liftToC . liftToTerm $ 1
         -- exp+1 because exp is one lower than the exponent
-        (True, False) -> liftToC . Term [Var ind (exp-1)] $ fromIntegral exp + 1
+        (True, (S exp')) -> liftToC . Term [Var ind exp'] $ fromIntegral (S (S exp'))
       dg = partialDTerm (Term vs d) n
   -- f, g, df are Term, dg is a C
   in sappend df g <> sappend f dg
@@ -189,7 +189,7 @@ gradient c = fmap (partialD c) V.universe
 gradientAt :: SNatI n => R n -> C n -> R n
 gradientAt rn = R . fmap (evalC rn) . gradient
 
-nthPower :: Word -> C n -> C n
-nthPower 0 _ = sempty
-nthPower n t = sappend t $ nthPower (n-1) t
+nthPower :: Nat -> C n -> C n
+nthPower Z     _ = sempty
+nthPower (S n) t = sappend t $ nthPower n t
 
