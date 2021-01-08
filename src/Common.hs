@@ -2,6 +2,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Common where
 
+import Data.List.NonEmpty ( NonEmpty(..), (<|) )
+import qualified Data.List.NonEmpty as NE
 import Data.Type.Nat ( Nat(..), SNatI )
 import Data.Vec.Lazy ( Vec(..) )
 import Data.Ratio ( (%) )
@@ -46,4 +48,22 @@ instance Arbitrary Number where
     num <- arbitrary :: Gen Int
     denom <- arbitrary :: Gen Word
     return . Number $ toInteger num % toInteger (denom + 1)
+
+merge :: Ord a => [a] -> [a] -> [a]
+merge []     l     = l
+merge l      []    = l
+merge (x:xs) (y:ys) = if x < y
+  then x : merge xs (y:ys)
+  else y : merge (x:xs) ys
+
+combineSimilar :: (a -> a -> Bool) -> (a -> a -> a) -> [a] -> [a]
+combineSimilar eq comb [] = []
+combineSimilar eq comb (x:[]) = [x]
+combineSimilar eq comb (x1:x2:xs) = if eq x1 x2
+  then combineSimilar eq comb (comb x1 x2 : xs)
+  else x1 : combineSimilar eq comb (x2:xs)
+
+fromEmpty :: a -> [a] -> NonEmpty a
+fromEmpty y []     = y :| []
+fromEmpty _ (x:xs) = x :| xs
 

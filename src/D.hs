@@ -96,13 +96,33 @@ uniqSortedVec (a ::: VNil)         = True
 uniqSortedVec (a1 ::: a2 ::: rest) = a1 /= a2 && uniqSortedVec (a2 ::: rest)
 
 
+-- for constructing valid instances of D
+cotermVarsEq :: Coterm p n -> Coterm p n -> Bool
+cotermVarsEq ct1 ct2 = cvs ct1 == cvs ct2 where
+  cvs ZeroCoterm     = Nothing
+  cvs (Coterm cvs _) = Just cvs
+
+-- only sensible when vars are equal
+-- Does not take into account that c<>c' might be mempty,
+-- this needs to be checked in the end
+cotermSum :: Coterm p n -> Coterm p n -> Coterm p n
+cotermSum ct             ZeroCoterm    = ct
+cotermSum ZeroCoterm     ct            = ct
+cotermSum (Coterm cvs c) (Coterm _ c') = if c <> c == mempty
+  then ZeroCoterm else Coterm cvs $ c <> c'
+
+
 data D p n = Coterms (Coterm p n) [Coterm p n]
 
 instance Show (D p n) where
   show (Coterms ctp ctps) = (<>) "D:\n  " . L.intercalate "\n + " . fmap show $ ctp:ctps
 
 instance Semigroup (D p n) where
-  (Coterms ctp ctps) <> (Coterms ctp' ctps') = mkD ctp $ ctps <> (ctp':ctps')
+  (Coterms ct cts) <> (Coterms ct' cts') = (\(ct :| cts) -> Coterms ct cts)
+                                         . fromEmpty ZeroCoterm
+                                         . filter (ZeroCoterm /=)
+                                         . combineSimilar cotermVarsEq cotermSum
+                                         $ merge (ct:cts) (ct':cts')
 
 instance Monoid (D p n) where
   mempty = Coterms ZeroCoterm []
@@ -114,7 +134,7 @@ instance Module (D p n) (C n) where
   mmult c (Coterms ctp ctps) = mkD (ctpMult c ctp) $ fmap (ctpMult c) ctps
 
 instance (SNatI p, SNatI n) => Arbitrary (D p n) where
-  arbitrary = mkD <$> arbitrary <*> resize 4 (listOf arbitrary)
+  arbitrary = mkD <$> arbitrary <*> resize 4 arbitrary
 
 liftToD :: Coterm p n -> D p n
 liftToD ctp = mkD ctp []
@@ -125,18 +145,11 @@ evalD vs (Coterms ctp ctps) =
 
 mkD :: Coterm p n -> [Coterm p n] -> D p n
 -- filter twice so that sumSimilarTerms does not have to consider ZeroCoterm
-mkD ctp = neToD . filterZeros . sumSimilarTerms . filterZeros . NE.sort . (:|) ctp where
-  sumSimilarTerms :: NonEmpty (Coterm p n) -> NonEmpty (Coterm p n)
-  sumSimilarTerms (ct :| [])       = ct :| []
-  -- this is needed becasuse mkCoterm can make a term Zero
-  sumSimilarTerms (ZeroCoterm :| Coterm cvs' c' : cts) =
-    sumSimilarTerms (Coterm cvs' c' :| cts)
-  sumSimilarTerms (Coterm cvs c :| Coterm cvs' c' : cts) = if cvs == cvs'
-    then sumSimilarTerms $ mkCoterm cvs (c <> c') :| cts
-    else Coterm cvs c <| sumSimilarTerms (Coterm cvs' c' :| cts)
-  filterZeros :: NonEmpty (Coterm p n) -> NonEmpty (Coterm p n)
-  filterZeros = fromMaybe (ZeroCoterm :| []) . NE.nonEmpty . NE.filter (ZeroCoterm /=)
-  neToD (ctp :| ctps) = Coterms ctp ctps
+mkD ct cts = (\(ct :| cts) -> Coterms ct cts)
+           . fromEmpty ZeroCoterm
+           . filter (ZeroCoterm /=)
+           . combineSimilar cotermVarsEq cotermSum
+           $ L.sort (ct:cts) where
 
 extProdCoterm :: D p2 n -> Coterm p1 n -> D (Plus p1 p2) n
 extProdCoterm (Coterms ctp ctps) ctp' =

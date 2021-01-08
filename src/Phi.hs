@@ -17,21 +17,32 @@ import D
 
 -- Map from R n to R m defined componentwise,
 -- phi_i defines how i:th element depends on R n
-newtype Phi n m = Phi { phiComp :: Vec m (C n) } deriving (Eq, Ord)
+newtype Phi n m = Phi { phiComp :: Vec m (C n) }
 
 instance (SNatI n, SNatI m) => Show (Phi n m) where
   show = (<>) "Phi:\n " . L.intercalate "\n "
        . V.toList . fmap (uncurry showStrAsFun)
        . V.zipWith (,) V.universe . fmap show . phiComp
 
+genSimpleC :: SNatI n => Gen (C n)
+genSimpleC = do
+  t1 <- arbitrary
+--  t2 <- arbitrary
+  return $ mkC t1 []
+
+genSimpleCs :: (SNatI m, SNatI n) => Gen (Vec m (C n))
+genSimpleCs = traverse (\u -> genSimpleC) $ V.repeat ()
+
+
 instance (SNatI n, SNatI m) => Arbitrary (Phi n m) where
-  arbitrary = Phi <$> arbitrary
+  arbitrary = Phi <$> genSimpleCs
 
 evalPhi :: R n -> Phi n m -> R m
 evalPhi rn = R . fmap (evalC rn) . phiComp
 
 
 pullbackTerm :: Phi n m -> Term m -> C n
+pullbackTerm phi ZeroTerm    = liftToC ZeroTerm
 pullbackTerm phi (Term [] d) = liftToC . liftToTerm $ d
 pullbackTerm phi (Term (Var n exp : vs) d) =
   sappend (nthPower (exp+1) $ phiComp phi V.! n) (pullbackTerm phi $ Term vs d)
@@ -46,7 +57,7 @@ pushforward phi (Vp p v) = Vp (evalPhi p phi)
                               (x $ vecMatProduct (R v) (jacobianAt phi p))
 
 idPhi :: SNatI n => Phi n n
-idPhi = Phi . fmap (\n -> liftToC . mkTerm [Var n 0] $ 1) $ V.universe
+idPhi = Phi . fmap (\n -> liftToC . Term [Var n 0] $ 1) $ V.universe
 
 compPhi :: (SNatI n, SNatI m, SNatI l) => Phi n m -> Phi m l -> Phi n l
 compPhi phiNM = Phi . fmap (pullbackC phiNM) . phiComp

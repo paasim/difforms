@@ -22,10 +22,6 @@ type EvalLiftedTerm n = Number -> R n -> Bool
 evalLiftedTerm :: EvalLiftedTerm n
 evalLiftedTerm d r = evalTerm r (liftToTerm d) == d
 
-mkTermIsIdempotent :: Number -> [Var n] -> Bool
-mkTermIsIdempotent d vars = let t1 = mkTerm vars d
-                            in t1 == mkTerm (termVars t1) (termCoeff t1)
-
 semigroupSymmetricTerm :: TwoTerm n
 semigroupSymmetricTerm r1 r2 = (r1 <> r2) == (r2 <> r1)
 

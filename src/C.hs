@@ -30,53 +30,77 @@ instance SNatI n => Arbitrary (Var n) where
 evalVar :: R n -> Var n -> Number
 evalVar r (Var ind exp) = (x r V.! ind) ^ (exp + 1)
 
+-- for constructing valid instances of Term
+varDimEq :: Var n -> Var n -> Bool
+varDimEq v1 v2 = varDim v1 == varDim v2
+
+-- only sensible when n1 == n2
+-- +1 is because of the shifted representation for the exponents
+varProd :: Var n -> Var n -> Var n
+varProd (Var n1 exp1) (Var _ exp2) = Var n1 $ exp1 + exp2 + 1
+
 
 -- A product of variables with a coefficient
-data Term n = Term { termVars :: [Var n], termCoeff :: Number } deriving (Eq, Ord)
+data Term n = ZeroTerm | Term [Var n] Number deriving (Eq, Ord)
 
 instance Show (Term n) where
+  show ZeroTerm    = show 0
   show (Term [] d) = show d
-  show (Term vs d)  = "(" <> show d <> ")*" <> (L.intercalate "*" . fmap show $ vs)
+  show (Term vs d) = "(" <> show d <> ")*" <> (L.intercalate "*" . fmap show $ vs)
 
 -- the monoid action on term(s) is multiplication, not sum
 instance Semigroup (Term n) where
-  (Term _ 0) <> (Term _ _)   = liftToTerm 0
-  (Term _ _) <> (Term _ 0)   = liftToTerm 0
-  (Term vs d) <> (Term vs' d') = mkTerm (vs <> vs') $ d*d'
+  ZeroTerm <> _ = ZeroTerm
+  _ <> ZeroTerm = ZeroTerm
+  (Term [] d) <> (Term vs' d') = Term vs'  $ d*d'
+  (Term vs d) <> (Term []  d') = Term vs   $ d*d'
+  (Term vs d) <> (Term vs' d') = Term vs'' $ d*d' where
+    vs'' = combineSimilar varDimEq varProd $ merge vs vs'
 
 instance Monoid (Term n) where
   mempty = liftToTerm 1
 
 instance SNatI n => Arbitrary (Term n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkTerm <$> resize 2 (listOf arbitrary) <*> arbitrary
+  arbitrary = mkTerm <$> resize 2 arbitrary <*> arbitrary
 
 liftToTerm :: Number -> Term n
-liftToTerm = Term []
+liftToTerm 0 = ZeroTerm
+liftToTerm d = Term [] d
 
 -- A 'smart constructor' that removes variables
 -- when the coefficient is zero, combines variables
 -- with same dimension and sorts the variables
 -- in ascending order for simpler comparison and printing
 mkTerm :: [Var n] -> Number -> Term n
-mkTerm _ 0 = liftToTerm 0
-mkTerm vs d = Term (multiplySimilarTerms . L.sort $ vs) d where
-    -- [x, x, y] -> [x^2, y]
-  multiplySimilarTerms :: [Var n] -> [Var n]
-  multiplySimilarTerms []                                 = []
-  multiplySimilarTerms [t]                                = [t]
-  multiplySimilarTerms (Var n1 exp1 : Var n2 exp2 : vs) = if n1 == n2
-    -- +1 is because of the shifted representation for the exponents
-    then multiplySimilarTerms $ Var n1 (exp1+exp2+1) : vs
-    else Var n1 exp1 : multiplySimilarTerms (Var n2 exp2 : vs)
+mkTerm _  0 = ZeroTerm
+mkTerm vs d = Term (combineSimilar varDimEq varProd . L.sort $ vs) d where
 
 evalTerm :: R n -> Term n -> Number
+evalTerm _ ZeroTerm        = 0
 evalTerm _ (Term [] d)     = d
 evalTerm r (Term (v:vs) d) = evalVar r v * evalTerm r (Term vs d)
 
 -- needed to make terms group
 negateTerm :: Term n -> Term n
+negateTerm ZeroTerm    = ZeroTerm
 negateTerm (Term vs d) = Term vs (negate d)
+
+-- for constructing valid instances of C
+termVarsEq :: Term n -> Term n -> Bool
+termVarsEq t1 t2 = vs t1 == vs t2 where
+  vs ZeroTerm    = Nothing
+  vs (Term vs _) = Just vs
+
+-- only sensible when vars are equal
+-- Does not take into account that d+d' might be zero,
+-- this needs to be checked in the end
+termSum :: Term n -> Term n -> Term n
+termSum ZeroTerm    t           = t
+termSum t           ZeroTerm    = t
+termSum (Term vs d) (Term _ d') = if d + d' == 0
+  then ZeroTerm
+  else Term vs $ d + d'
 
 
 -- A sum of nonzero term(s), ie. polynomials as terms is of the form
@@ -84,24 +108,28 @@ negateTerm (Term vs d) = Term vs (negate d)
 data C n = Terms (Term n) [Term n] deriving (Eq, Ord)
 
 instance Show (C n) where
-  show (Terms t [])   = "C: " <> show t
+  show (Terms t [])       = "C: " <> show t
   show (Terms t1 (t2:ts)) = "C: " <> show t1 <> " + " <> (L.intercalate " + " . fmap show $ t2:ts)
 
 instance SNatI n => Arbitrary (C n) where
   -- in order to prevent oveflow when evaluating terms
-  arbitrary = mkC <$> arbitrary <*> resize 4 (listOf arbitrary)
+  arbitrary = mkC <$> arbitrary <*> resize 4 arbitrary
 
 -- the monoid action is now sum, not product as with term
 -- (this is because terms needs to be a semiring)
 instance Semigroup (C n) where
-  (Terms t ts) <> (Terms t' ts') = mkC t $ ts <> (t':ts')
+  (Terms t ts) <> (Terms t' ts') = (\(t'' :| ts'') -> Terms t'' ts'')
+                                 . fromEmpty ZeroTerm
+                                 . filter (ZeroTerm /=)
+                                 . combineSimilar termVarsEq termSum
+                                 $ merge (t:ts) (t':ts')
 
 instance Monoid (C n) where
-  mempty = liftToC . liftToTerm $ 0
+  mempty = liftToC ZeroTerm
 
 -- Being (Abelian) Group and Semiring makes it a Ring
 instance Group (C n) where
-  ginv (Terms t ts) = mkC (negateTerm t) (fmap negateTerm ts)
+  ginv (Terms t ts) = Terms (negateTerm t) (fmap negateTerm ts)
 
 -- this is the multiplication, kind of confusingly corresponding
 -- to monoid action of term
@@ -123,18 +151,11 @@ liftToC t1 = Terms t1 []
 -- are in correct order, terms with common variable-part are
 -- summed together and and terms with coefficient 0 are filtered out
 mkC :: Term n -> [Term n] -> C n
-mkC t ts = neToC . filterZeros . sumSimilarTerms . NE.sort $ t :| ts where
-  -- [2xy^2, -5xy^2, 3x] -> [-3xy^2, 3x]
-  sumSimilarTerms :: NonEmpty (Term n) -> NonEmpty (Term n)
-  sumSimilarTerms (t :| [])       = t :| []
-  sumSimilarTerms (Term vs d :| Term vs' d' : ts) = if vs == vs'
-    then sumSimilarTerms $ mkTerm vs (d+d') :| ts
-    else Term vs d <| sumSimilarTerms (Term vs' d' :| ts)
-  -- remove all terms with 0 as coefficient but
-  -- if the result is an empty list, keep one
-  filterZeros :: NonEmpty (Term n) -> NonEmpty (Term n)
-  filterZeros = fromMaybe (liftToTerm 0 :| []) . NE.nonEmpty . NE.filter (liftToTerm 0 /=)
-  neToC (t :| ts) = Terms t ts
+mkC t ts = (\(t :| ts) -> Terms t ts)
+         . fromEmpty ZeroTerm
+         . filter (ZeroTerm /=)
+         . combineSimilar termVarsEq termSum
+         $ L.sort (t:ts)
 
 evalC :: R n -> C n -> Number
 evalC r (Terms t1 [])      = evalTerm r t1
@@ -142,12 +163,13 @@ evalC r (Terms t1 (t2:ts)) = evalTerm r t1 + evalC r (Terms t2 ts)
 
 -- not endomap due to term not containing sums
 partialDTerm :: Term n -> Fin n -> C n
-partialDTerm (Term [] _) n = liftToC . liftToTerm $ 0
+partialDTerm ZeroTerm n = liftToC ZeroTerm
+partialDTerm (Term [] _) n = liftToC ZeroTerm
 partialDTerm (Term (Var ind exp : vs) d) n =
   let f = liftToC $ Term [Var ind exp] 1
       g = liftToC $ Term vs d
       df = case (n == ind, exp == 0) of
-        (False, _)   -> liftToC . liftToTerm $ 0
+        (False, _)   -> liftToC ZeroTerm
         (True, True) -> liftToC . liftToTerm $ 1
         -- exp+1 because exp is one lower than the exponent
         (True, False) -> liftToC . Term [Var ind (exp-1)] $ fromIntegral exp + 1
