@@ -43,26 +43,44 @@ instance (SNatI n, SNatI m) => Arbitrary (Phi n m) where
 evalPhi :: R n -> Phi n m -> R m
 evalPhi rn = R . fmap (evalC rn) . phiComp
 
--- this could probably be simplified using a fold
+-- if f = phi x_m, pullback x_m = f^exp
+pullbackVar :: Phi n m -> Var m -> C n
+pullbackVar phi (Var n exp) = nthPower (S exp) $ phiComp phi V.! n
+
+-- folds over vars
 pullbackTerm :: Phi n m -> Term m -> C n
 pullbackTerm _ ZeroTerm      = liftToC ZeroTerm
-pullbackTerm phi (Term [] d) = liftToC . liftToTerm $ d
-pullbackTerm phi (Term (Var n exp : vs) d) =
-  sappend (nthPower (exp+1) $ phiComp phi V.! n) (pullbackTerm phi $ Term vs d)
+pullbackTerm phi (Term vs d) =
+  foldr sappend (liftToC $ liftToTerm d) $ fmap (pullbackVar phi) vs
 
--- precomposes f with the manifold map
--- this could probably be simplified using a fold
+-- precomposes f with the manifold map,
+-- folds over terms
 pullbackC :: Phi n m -> C m -> C n
-pullbackC phi (Terms t1 [])      = pullbackTerm phi t1
-pullbackC phi (Terms t1 (t2:ts)) = pullbackTerm phi t1 <> pullbackC phi (Terms t2 ts)
+pullbackC phi (Terms t ts) = foldMap (pullbackTerm phi) $ t:ts
 
+pullbackCovar :: SNatI n => Phi n m -> Covar m -> D (S Z) n
+pullbackCovar phi cv = d0 $ phiComp phi V.! covarDim cv
+
+pullbackCoterm :: SNatI n => Phi n m -> Coterm p m -> D p n
+pullbackCoterm _ ZeroCoterm        = liftToD ZeroCoterm
+pullbackCoterm phi (Coterm VNil c) = liftToD . liftToCoterm . pullbackC phi $ c
+pullbackCoterm phi (Coterm (cv:::cvs) c) =
+  exteriorProduct (pullbackCovar phi cv) . pullbackCoterm phi $ Coterm cvs c
+
+pullbackD :: SNatI n => Phi n m -> D p m -> D p n
+pullbackD phi (Coterms ctp ctps) = foldMap (pullbackCoterm phi) $ ctp:ctps
+
+-- evaluates phi (p ,v) componentwise
 pushforward :: (SNatI n, SNatI m) => Phi n m -> Vp n -> Vp m
 pushforward phi (Vp p v) =
   Vp (evalPhi p phi) . x $ vecMatProduct (R v) (jacobianAt phi p)
 
+-- identity map
 idPhi :: SNatI n => Phi n n
 idPhi = Phi . fmap (\n -> liftToC . Term [Var n 0] $ 1) $ V.universe
 
+-- composition is the same as pullback over the columns
+-- eg compose 2x^2->y 3y^3->_ = 3*(2x^2)^3 = 3*(24x^6) = 72x^6
 compPhi :: (SNatI n, SNatI m, SNatI l) => Phi n m -> Phi m l -> Phi n l
 compPhi phiNM = Phi . fmap (pullbackC phiNM) . phiComp
 
@@ -75,16 +93,4 @@ jacobian = fmap gradient . phiComp
 jacobianToAt :: SNatI n => Vec m (Vec n (C n)) -> R n -> Mat n m
 jacobianToAt j r = transpose . Mat . fmap (R . fmap (evalC r)) $ j
 
-pullbackCovar :: SNatI n => Phi n m -> Covar m -> D (S Z) n
-pullbackCovar phi cv = d0 $ phiComp phi V.! covarDim cv
-
-pullbackCoterm :: SNatI n => Phi n m -> Coterm p m -> D p n
-pullbackCoterm _ ZeroCoterm        = liftToD ZeroCoterm
-pullbackCoterm phi (Coterm VNil c) = liftToD . liftToCoterm . pullbackC phi $ c
-pullbackCoterm phi (Coterm (cv:::cvs) c) =
-  exteriorProduct (pullbackCovar phi cv) . pullbackCoterm phi $ Coterm cvs c
-
-pullbackD :: SNatI n => Phi n m -> D p m -> D p n
-pullbackD phi (Coterms ctp ctps) =
-  foldr (<>) (pullbackCoterm phi ctp) $ fmap (pullbackCoterm phi) ctps
 

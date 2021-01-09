@@ -153,27 +153,25 @@ evalC :: R n -> C n -> Number
 evalC r (Terms t1 [])      = evalTerm r t1
 evalC r (Terms t1 (t2:ts)) = evalTerm r t1 + evalC r (Terms t2 ts)
 
--- not endomap due to term not containing sums
-partialDTerm :: Fin n -> Term n -> C n
-partialDTerm n ZeroTerm                    = liftToC ZeroTerm
-partialDTerm n (Term [] _)                 = liftToC ZeroTerm
-partialDTerm n (Term (Var ind exp : vs) d) =
-  -- the derivative is of the form df*g + dg*f
-  -- where f is the first variable and g are the rest of the vars
-  let f = liftToC $ Term [Var ind exp] 1
-      g = liftToC $ Term vs d
-      df = case (n == ind, exp) of
-        (False, _)    -> liftToC ZeroTerm
-        (True, Z)     -> liftToC . liftToTerm $ 1
-        -- exp+1 because exp is one lower than the exponent
-        (True, (S exp')) -> liftToC . Term [Var ind exp'] $ fromIntegral (S (S exp'))
-      dg = partialDTerm n $ Term vs d
-  -- f, g, df are Term, dg is a C
-  in sappend df g <> sappend f dg
+-- d x^3 = 3x^2 etc.
+partialDVar :: Fin n -> Var n -> Term n
+partialDVar n (Var ind exp) = case (n == ind, exp) of
+  (False, _)        -> ZeroTerm
+  (_    , Z)        -> liftToTerm 1
+  (_    , (S exp')) -> Term [Var ind exp'] $ fromIntegral (S (S exp'))
+
+-- this works only because term can by construction contain
+-- at most one term that has a nonzero partial derivative
+partialDTerm :: Fin n -> Term n -> Term n
+partialDTerm n ZeroTerm                    = ZeroTerm
+partialDTerm n (Term [] _)                 = ZeroTerm
+partialDTerm n (Term (v : vs) d) = case partialDVar n v of
+  ZeroTerm -> Term [v] 1 <> partialDTerm n (Term vs d)
+  t'       -> t' <> Term vs d
 
 -- fold over the terms
 partialD :: C n -> Fin n -> C n
-partialD (Terms t ts) n = foldr (<>) (partialDTerm n t) . fmap (partialDTerm n) $ ts
+partialD  (Terms t ts) n = foldMap (liftToC . partialDTerm n) $ t:ts
 
 gradient :: SNatI n => C n -> Vec n (C n)
 gradient c = fmap (partialD c) V.universe
