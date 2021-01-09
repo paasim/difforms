@@ -2,13 +2,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Common where
 
-import Data.List.NonEmpty ( NonEmpty(..), (<|) )
-import qualified Data.List.NonEmpty as NE
-import Data.Type.Nat ( Nat(..), SNatI )
-import Data.Vec.Lazy ( Vec(..) )
 import Data.Ratio ( (%) )
 import Test.QuickCheck
-
 
 -- Definitions of Semirng, Semiring and Algebra
 
@@ -63,7 +58,7 @@ combineSimilar eq comb (x1:x2:xs) = if eq x1 x2
   then combineSimilar eq comb (comb x1 x2 : xs)
   else x1 : combineSimilar eq comb (x2:xs)
 
-fromEmpty :: a -> [a] -> NonEmpty a
-fromEmpty y []     = y :| []
-fromEmpty _ (x:xs) = x :| xs
+fromEmpty :: (a -> [a] -> b) -> a -> [a] -> b
+fromEmpty f defVal []     = f defVal []
+fromEmpty f defVal (x:xs) = f x xs
 

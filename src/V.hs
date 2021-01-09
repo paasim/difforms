@@ -3,7 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module V where
 
-import Data.Type.Nat ( Nat(..), SNatI )
+import Data.Type.Nat ( SNatI )
 import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
