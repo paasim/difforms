@@ -8,7 +8,6 @@ import Data.Fin ( Fin(..) )
 import Data.Type.Nat ( Nat(..), SNatI )
 import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
-import Data.Ratio ( (%) )
 import Test.QuickCheck
 import Common
 
@@ -63,7 +62,7 @@ appendRow rm (Mat m) = Mat $ rm ::: m
 
 appendCol :: R n -> Mat n m -> Mat n (S m)
 appendCol (R VNil) (Mat VNil) = Mat VNil
-appendCol (R (d ::: ds)) (Mat ((R row) ::: rows)) =
+appendCol (R (d ::: ds)) (Mat (R row ::: rows)) =
   appendRow (R (d ::: row)) (appendCol (R ds) (Mat rows))
 
 matVecProduct :: SNatI m => Mat n m -> R m -> R n

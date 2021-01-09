@@ -106,7 +106,7 @@ testPhi = hspec $ do
     prop "pullbackC preserves identity"
       (pullbackCId :: PullbackCId N.Nat3)
     prop "pullbackC preserves composition"
-      (pullbackCComp :: PullbackCComp N.Nat1 N.Nat2 N.Nat2)
+      (pullbackCComp :: PullbackCComp N.Nat3 N.Nat2 N.Nat2)
     prop "pullbackC is preserves multiplication"
       (pullbackCMult :: PullbackCMult N.Nat3 N.Nat2)
     prop "pullbackC is preserves addition"
@@ -116,11 +116,11 @@ testPhi = hspec $ do
     prop "pullbackD preserves identity"
       (pullbackDId :: PullbackDId N.Nat2 N.Nat3)
     prop "pullbackD preserves composition"
-      (pullbackDComp :: PullbackDComp N.Nat1 N.Nat1 N.Nat1 N.Nat1)
+      (pullbackDComp :: PullbackDComp N.Nat2 N.Nat3 N.Nat2 N.Nat3)
     prop "pullbackD is preserves multiplication"
-      (pullbackDMult :: PullbackDMult N.Nat1 N.Nat1 N.Nat2)
+      (pullbackDMult :: PullbackDMult N.Nat2 N.Nat3 N.Nat2)
     prop "pullbackD is preserves addition"
-      (pullbackDAdd :: PullbackDAdd N.Nat1 N.Nat2 N.Nat3)
+      (pullbackDAdd :: PullbackDAdd N.Nat2 N.Nat2 N.Nat3)
 
 
   describe "Tests for Phi, Pushforward:" $ do
@@ -129,7 +129,7 @@ testPhi = hspec $ do
     prop "pushforward preserves identity"
       (pushforwardId :: PushforwardId N.Nat3)
     prop "pushforward preserves composition"
-      (pushforwardComp :: PushforwardComp N.Nat1 N.Nat2 N.Nat2)
+      (pushforwardComp :: PushforwardComp N.Nat3 N.Nat2 N.Nat3)
     prop "pushforward is preserves multiplication"
       (pushforwardMult :: PushforwardMult N.Nat3 N.Nat2)
     prop "pushforward is preserves addition"
