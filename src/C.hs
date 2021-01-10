@@ -10,7 +10,6 @@ import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
 import Test.QuickCheck
 import Common
-import R
 
 -- A variable x_i in n dimensions where
 -- i < n
@@ -24,8 +23,8 @@ instance Show (Var n) where
 instance SNatI n => Arbitrary (Var n) where
   arbitrary = Var <$> elements (V.toList V.universe) <*> resize 4 arbitrary
 
-evalVar :: R n -> Var n -> Number
-evalVar r (Var ind exp) = (x r V.! ind) ^ (toNatural $ S exp)
+evalVar :: Vec n (Number) -> Var n -> Number
+evalVar vn (Var ind exp) = (vn V.! ind) ^ (toNatural $ S exp)
 
 -- for constructing valid instances of Term
 varDimEq :: Var n -> Var n -> Bool
@@ -73,9 +72,9 @@ mkTerm :: [Var n] -> Number -> Term n
 mkTerm _  0 = ZeroTerm
 mkTerm vs d = Term (combineSimilar varDimEq varProd . L.sort $ vs) d where
 
-evalTerm :: R n -> Term n -> Number
+evalTerm :: Vec n Number -> Term n -> Number
 evalTerm _ ZeroTerm    = 0
-evalTerm r (Term vs d) = foldr (*) d $ fmap (evalVar r) vs
+evalTerm vn (Term vs d) = foldr (*) d $ fmap (evalVar vn) vs
 
 -- needed to make C a group
 negateTerm :: Term n -> Term n
@@ -133,8 +132,8 @@ instance Algebra (C n) where
 liftToC :: Term n -> C n
 liftToC t1 = mkC [t1]
 
-evalC :: R n -> C n -> Number
-evalC r = sum . fmap (evalTerm r) . cTerms
+evalC :: Vec n Number -> C n -> Number
+evalC vn = sum . fmap (evalTerm vn) . cTerms
 
 -- A 'smart constructor' which ensures that the term(s)
 -- are in correct order, terms with common variable-part are
@@ -170,8 +169,8 @@ partialD cn n = foldMap (liftToC . partialDTerm n) . cTerms $ cn
 gradient :: SNatI n => C n -> Vec n (C n)
 gradient c = fmap (partialD c) V.universe
 
-gradientAt :: SNatI n => R n -> C n -> R n
-gradientAt rn = R . fmap (evalC rn) . gradient
+gradientAt :: SNatI n => Vec n Number -> C n -> Vec n Number
+gradientAt vn = fmap (evalC vn) . gradient
 
 nthPower :: Nat -> C n -> C n
 nthPower Z     _ = sempty

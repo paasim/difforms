@@ -1,20 +1,20 @@
+{-# LANGUAGE DataKinds #-}
 module TestPhi ( testPhi ) where
 
-import Data.Type.Nat ( SNatI )
+import Data.Type.Nat ( Nat(..), SNatI )
 import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Type.Nat as N
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Common
-import R
 import C
 import V
 import D
 import Phi
 
 -- pullbackC
-type PullbackDefC n m = Phi n m -> C m -> R n -> Bool
+type PullbackDefC n m = Phi n m -> C m -> Vec n Number -> Bool
 pullbackDefC :: (SNatI n, SNatI m) => PullbackDefC n m
 pullbackDefC phi cm rn = evalC rn (pullbackC phi cm) ==
                          evalC (evalPhi rn phi) cm
@@ -35,7 +35,7 @@ pullbackCAdd :: (SNatI n, SNatI m) => PullbackCAdd n m
 pullbackCAdd phi cm1 cm2 =
   pullbackC phi (cm1 <> cm2) == pullbackC phi cm1 <> pullbackC phi cm2
 
-type PullbackCMult n m = Phi n m -> Number -> R n -> C m -> Bool
+type PullbackCMult n m = Phi n m -> Number -> Vec n Number -> C m -> Bool
 pullbackCMult :: (SNatI n, SNatI m) => PullbackCMult n m
 pullbackCMult phi r rn cm =
   (amult r . pullbackC phi) cm == (pullbackC phi . amult r) cm
@@ -43,24 +43,24 @@ pullbackCMult phi r rn cm =
 
 -- pullbackD is a functor
 type PullbackDId p n = Vec p (V n) -> D p n -> Bool
-pullbackDId :: SNatI n => PullbackDId p n
+pullbackDId :: SNatI n => PullbackDId (S p) n
 pullbackDId vs dn = evalD vs (pullbackD idPhi dn) == evalD vs dn
 
 type PullbackDComp p n m l = Phi n m -> Phi m l -> Vec p (V n) -> D p l -> Bool
-pullbackDComp :: (SNatI n, SNatI m, SNatI l) => PullbackDComp p n m l
+pullbackDComp :: (SNatI n, SNatI m, SNatI l) => PullbackDComp (S p) n m l
 pullbackDComp phiNM phiML vs dl =
   evalD vs (pullbackD (compPhi phiNM phiML) dl) ==
     evalD vs (pullbackD phiNM . pullbackD phiML $ dl)
 
 -- pullback is linear
 type PullbackDAdd p n m = Phi n m -> Vec p (V n) -> D p m -> D p m -> Bool
-pullbackDAdd :: (SNatI n, SNatI m) => PullbackDAdd p n m
+pullbackDAdd :: (SNatI n, SNatI m) => PullbackDAdd (S p) n m
 pullbackDAdd phi vs dm1 dm2 =
   evalD vs (pullbackD phi $ dm1 <> dm2) ==
     evalD vs (pullbackD phi dm1 <> pullbackD phi dm2)
 
 type PullbackDMult p n m = Phi n m -> C m -> Vec p (V n) -> D p m -> Bool
-pullbackDMult :: (SNatI n, SNatI m) => PullbackDMult p n m
+pullbackDMult :: (SNatI n, SNatI m) => PullbackDMult (S p) n m
 pullbackDMult phi cm vs dm =
   evalD vs (mmult (pullbackC phi cm) . pullbackD phi $ dm) ==
     evalD vs (pullbackD phi . mmult cm $ dm)
@@ -85,7 +85,7 @@ pushforwardComp phiNM phiML vpn cl =
     evalVp cl (pushforward phiML . pushforward phiNM $ vpn)
 
 -- pushforward is linear
-type PushforwardAdd n m = Phi n m -> R n -> Vec n Number -> Vec n Number -> C m -> Bool
+type PushforwardAdd n m = Phi n m -> Vec n Number -> Vec n Number -> Vec n Number -> C m -> Bool
 pushforwardAdd :: (SNatI n, SNatI m) => PushforwardAdd n m
 pushforwardAdd phi p v1 v2 c =
   let vp1 = Vp p v1

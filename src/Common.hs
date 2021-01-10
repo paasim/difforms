@@ -3,6 +3,8 @@
 module Common where
 
 import Data.Ratio ( (%) )
+import Data.Vec.Lazy ( Vec(..) )
+import qualified Data.Vec.Lazy as V
 import Test.QuickCheck
 
 -- Definitions of Semirng, Semiring and Algebra
@@ -43,6 +45,25 @@ instance Arbitrary Number where
     num <- arbitrary :: Gen Int
     denom <- arbitrary :: Gen Word
     return . Number $ toInteger num % toInteger (denom + 1)
+
+instance Semigroup Number where
+  (<>) = (+)
+
+instance Monoid Number where
+  mempty = 0
+
+instance Group Number where
+  ginv = negate
+
+instance Semirng Number where
+  sappend = (*)
+
+instance Semiring Number where
+  sempty = 1
+
+dotProduct :: Vec n Number -> Vec n Number -> Number
+dotProduct vn1 vn2 = foldMap id $ V.zipWith sappend vn1 vn2
+
 
 merge :: Ord a => [a] -> [a] -> [a]
 merge []     l     = l

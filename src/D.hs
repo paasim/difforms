@@ -10,7 +10,7 @@ import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
 import Test.QuickCheck
 import Common
-import R
+import Mat
 import C
 import V
 
@@ -24,7 +24,7 @@ instance SNatI n => Arbitrary (Covar n) where
   arbitrary = Covar <$> (elements . V.toList $ V.universe)
 
 evalCovar :: V n -> Covar n -> C n
-evalCovar v (Covar n) = vComp v V.! n
+evalCovar v cv = vComp v V.! covarDim cv
 
 -- ZeroCoterm corresponds to the case where C n is mempty
 data Coterm p n = ZeroCoterm | Coterm (Vec p (Covar n)) (C n) deriving (Eq, Ord)
@@ -65,10 +65,10 @@ mkCoterm cvs c = let (isEven, cvs') = bubbleVec cvs
     (_,  True) -> Coterm cvs' c
     (_, False) -> negateCoterm $ Coterm cvs' c -- negate because of anticommutativity
 
-evalCoterm :: Vec p (V n) -> Coterm p n -> C n
+evalCoterm :: Vec (S p) (V n) -> Coterm (S p) n -> C n
 evalCoterm vs ZeroCoterm = mempty
-evalCoterm vs (Coterm cvs c) = sappend c . foldr sappend sempty
-  $ V.zipWith evalCovar vs cvs
+evalCoterm vs (Coterm cvs c) =
+  sappend c . det . Mat . fmap (\v -> fmap (evalCovar v) cvs) $ vs
 
 negateCoterm :: Coterm p n -> Coterm p n
 negateCoterm ZeroCoterm     = ZeroCoterm
@@ -135,7 +135,7 @@ instance (SNatI p, SNatI n) => Arbitrary (D p n) where
 liftToD :: Coterm p n -> D p n
 liftToD ctp = mkD [ctp]
 
-evalD :: Vec p (V n) -> D p n -> C n
+evalD :: Vec (S p) (V n) -> D (S p) n -> C n
 evalD vs = foldMap (evalCoterm vs) . dCoterms
 
 mkD :: [Coterm p n] -> D p n

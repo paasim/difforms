@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 028d7a50715be598982c5600e9569bfcbc1856801359d01e9f9ec43c9640a59f
+-- hash: defa37045cbe96baf0a146a0eedaa9c2fc334df83c689429f289a5642c56a01b
 
 name:           diffforms
 version:        0.11.0.0
@@ -30,8 +30,8 @@ library
       C
       Common
       D
+      Mat
       Phi
-      R
       V
   other-modules:
       Paths_diffforms
@@ -67,8 +67,8 @@ test-suite diffforms-test
   other-modules:
       TestC
       TestD
+      TestMat
       TestPhi
-      TestR
       TestV
       Paths_diffforms
   hs-source-dirs:

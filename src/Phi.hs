@@ -9,7 +9,7 @@ import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
 import Test.QuickCheck
 import Common
-import R
+import Mat
 import C
 import V
 import D
@@ -40,8 +40,8 @@ genSimpleCs = traverse (\u -> genSimpleC) $ V.repeat ()
 instance (SNatI n, SNatI m) => Arbitrary (Phi n m) where
   arbitrary = Phi <$> genSimpleCs
 
-evalPhi :: R n -> Phi n m -> R m
-evalPhi rn = R . fmap (evalC rn) . phiComp
+evalPhi :: Vec n Number -> Phi n m -> Vec m Number
+evalPhi vn = fmap (evalC vn) . phiComp
 
 -- if f = phi x_m, pullback x_m = f^exp
 pullbackVar :: Phi n m -> Var m -> C n
@@ -73,7 +73,7 @@ pullbackD phi = foldMap (pullbackCoterm phi) . dCoterms
 -- evaluates phi (p ,v) componentwise
 pushforward :: (SNatI n, SNatI m) => Phi n m -> Vp n -> Vp m
 pushforward phi (Vp p v) =
-  Vp (evalPhi p phi) . x $ vecMatProduct (R v) (jacobianAt phi p)
+  Vp (evalPhi p phi) $ vecMatProduct (jacobianAt phi p) v
 
 -- identity map
 idPhi :: SNatI n => Phi n n
@@ -84,13 +84,13 @@ idPhi = Phi . fmap (\n -> liftToC . Term [Var n 0] $ 1) $ V.universe
 compPhi :: (SNatI n, SNatI m, SNatI l) => Phi n m -> Phi m l -> Phi n l
 compPhi phiNM = Phi . fmap (pullbackC phiNM) . phiComp
 
-jacobianAt :: SNatI n => Phi n m -> R n -> Mat n m
+jacobianAt :: SNatI n => Phi n m -> Vec n Number -> Mat n m Number
 jacobianAt phi rn = transpose . Mat . fmap (gradientAt rn) . phiComp $ phi
 
 jacobian :: SNatI n => Phi n m -> Vec m (Vec n (C n))
 jacobian = fmap gradient . phiComp
 
-jacobianToAt :: SNatI n => Vec m (Vec n (C n)) -> R n -> Mat n m
-jacobianToAt j r = transpose . Mat . fmap (R . fmap (evalC r)) $ j
+jacobianToAt :: SNatI n => Vec m (Vec n (C n)) -> Vec n Number -> Mat n m Number
+jacobianToAt j r = transpose . Mat . fmap (fmap (evalC r)) $ j
 
 

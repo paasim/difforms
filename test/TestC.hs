@@ -3,12 +3,11 @@ module TestC ( testC ) where
 import qualified Data.Type.Nat as N
 import Data.Fin ( Fin(..) )
 import qualified Data.Fin as F
-import Data.List.NonEmpty ( NonEmpty(..) )
+import Data.Vec.Lazy ( Vec(..) )
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Common
-import R
 import C
 
 -- Nothing to test with variables
@@ -18,7 +17,7 @@ type OneTerm n   = Term n -> Bool
 type TwoTerm n   = Term n -> OneTerm n
 type ThreeTerm n = Term n -> TwoTerm n
 
-type EvalLiftedTerm n = Number -> R n -> Bool
+type EvalLiftedTerm n = Number -> Vec n Number -> Bool
 evalLiftedTerm :: EvalLiftedTerm n
 evalLiftedTerm d r = evalTerm r (liftToTerm d) == d
 
@@ -37,7 +36,7 @@ type TwoC n   = C n -> OneC n
 type ThreeC n = C n -> TwoC n
 type FourC n  = C n -> ThreeC n
 
-type EvalLiftedC n = R n -> Term n -> Bool
+type EvalLiftedC n = Vec n Number -> Term n -> Bool
 evalLiftedC :: EvalLiftedC n
 evalLiftedC r t = evalC r (liftToC t) == evalTerm r t
 

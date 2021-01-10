@@ -1,6 +1,6 @@
 module Main where
 
-import TestR
+import TestMat
 import TestC
 import TestV
 import TestD
@@ -8,7 +8,7 @@ import TestPhi
 
 main :: IO ()
 main = do
-  testR
+  testMat
   testC
   testV
   testD

@@ -9,7 +9,6 @@ import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Common
-import R
 import C
 import V
 
@@ -115,7 +114,7 @@ lieBracketJacobi c u v w =
 
 
 -- Vp
-type OneVp n   = Vec n Number -> R n -> Bool
+type OneVp n   = Vec n Number -> Vec n Number -> Bool
 type TwoVp n   = Vec n Number -> OneVp n
 type ThreeVp n = Vec n Number -> TwoVp n
 
