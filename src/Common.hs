@@ -58,7 +58,3 @@ combineSimilar eq comb (x1:x2:xs) = if eq x1 x2
   then combineSimilar eq comb (comb x1 x2 : xs)
   else x1 : combineSimilar eq comb (x2:xs)
 
-fromEmpty :: (a -> [a] -> b) -> a -> [a] -> b
-fromEmpty f defVal []     = f defVal []
-fromEmpty f defVal (x:xs) = f x xs
-

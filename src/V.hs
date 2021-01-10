@@ -34,7 +34,7 @@ instance SNatI n => Module (V n) (C n) where
   mmult c = V . fmap (`sappend` c) . vComp
 
 evalV :: SNatI n => C n -> V n -> C n
-evalV c v = foldr (<>) mempty . V.zipWith sappend (vComp v) . fmap (partialD c) $ V.universe
+evalV c v = foldMap id . V.zipWith sappend (vComp v) . fmap (partialD c) $ V.universe
 
 unitV :: SNatI n => V n
 unitV = V . V.repeat $ sempty
@@ -42,7 +42,7 @@ unitV = V . V.repeat $ sempty
 lieBracket :: SNatI n => V n -> V n -> V n
 lieBracket (V v) (V w) = (V . fmap (pdSum v) $ w) <> ginv (V . fmap (pdSum w) $ v) where
   pdSum :: SNatI n => Vec n (C n) -> C n -> C n -- weighted sum of partial derivatives
-  pdSum v c = foldr (<>) mempty . V.zipWith sappend v . fmap (partialD c) $ V.universe
+  pdSum v c = foldMap id . V.zipWith sappend v . fmap (partialD c) $ V.universe
 
 
 -- Tangent vector at point p

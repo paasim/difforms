@@ -98,36 +98,31 @@ termSum (Term vs d) (Term _ d') =
 
 -- A sum of nonzero term(s), ie. polynomials as terms is of the form
 -- a*x_i*...*x_j + bx_h*...*x_k + ...
-data C n = Terms (Term n) [Term n] deriving (Eq, Ord)
+data C n = Terms { cTerms :: [Term n] } deriving (Eq, Ord)
 
 instance Show (C n) where
-  show (Terms t [])       = "C: " <> show t
-  show (Terms t1 (t2:ts)) = "C: " <> show t1 <> " + " <> (L.intercalate " + " . fmap show $ t2:ts)
+  show = (<>) "C: " . L.intercalate " + " . fmap show . cTerms
 
 instance SNatI n => Arbitrary (C n) where
-  arbitrary = mkC <$> arbitrary <*> resize 4 arbitrary
+  arbitrary = mkC <$> resize 4 arbitrary
 
 -- the monoid action is now sum, not product as with term
 -- (this is because terms needs to be a semiring)
 instance Semigroup (C n) where
-  (Terms t ts) <> (Terms t' ts') =
-    fromEmpty Terms ZeroTerm -- if the result is an empty list, take a ZeroTerm
-    . filter (ZeroTerm /=) -- Remove 0s from the sum
-    . combineSimilar termVarsEq termSum -- ax_1x_2 + bx_1x_2 = (a+b)x_1x_2 etc.
-    $ merge (t:ts) (t':ts') --these are already ordered so a merge is enough
+                              --these are already ordered so a merge is enough
+  cn <> cn' = sortedTermsIntoC $ merge (cTerms cn) (cTerms cn')
 
 instance Monoid (C n) where
   mempty = liftToC ZeroTerm
 
 -- Being (Abelian) Group and Semiring makes it a Ring
 instance Group (C n) where
-  ginv (Terms t ts) = Terms (negateTerm t) (fmap negateTerm ts)
+  ginv = mkC . fmap negateTerm . cTerms
 
 -- this is the multiplication, kind of confusingly corresponding
 -- to monoid action of term
 instance Semirng (C n) where
-  sappend (Terms t1 t1s) (Terms t2 t2s) =
-    let (t :| ts) = (<>) <$> t1 :| t1s <*> t2 :| t2s in mkC t ts
+  sappend cn cn' = mkC $ (<>) <$> cTerms cn <*> cTerms cn'
 
 instance Semiring (C n) where
   sempty = liftToC . liftToTerm $ 1
@@ -136,29 +131,28 @@ instance Algebra (C n) where
   amult a = sappend (liftToC . liftToTerm $ a)
 
 liftToC :: Term n -> C n
-liftToC t1 = Terms t1 []
+liftToC t1 = mkC [t1]
+
+evalC :: R n -> C n -> Number
+evalC r = sum . fmap (evalTerm r) . cTerms
 
 -- A 'smart constructor' which ensures that the term(s)
 -- are in correct order, terms with common variable-part are
 -- summed together and and terms with coefficient 0 are filtered out
--- see comments for the semigroup instance as this is similar
--- but does not assume that the terms are sorted
-mkC :: Term n -> [Term n] -> C n
-mkC t ts = fromEmpty Terms ZeroTerm
-         . filter (ZeroTerm /=)
-         . combineSimilar termVarsEq termSum
-         $ L.sort (t:ts)
+mkC :: [Term n] -> C n
+mkC = sortedTermsIntoC . L.sort
 
-evalC :: R n -> C n -> Number
-evalC r (Terms t1 [])      = evalTerm r t1
-evalC r (Terms t1 (t2:ts)) = evalTerm r t1 + evalC r (Terms t2 ts)
+sortedTermsIntoC :: [Term n] -> C n
+sortedTermsIntoC = Terms
+                 . filter (ZeroTerm /=) -- Remove 0s from the sum
+                 . combineSimilar termVarsEq termSum -- ax_1x_2 + bx_1x_2 = (a+b)x_1x_2 etc.
 
 -- d x^3 = 3x^2 etc.
 partialDVar :: Fin n -> Var n -> Term n
-partialDVar n (Var ind exp) = case (n == ind, exp) of
+partialDVar n v = case (n == varDim v, varExp v) of
   (False, _)        -> ZeroTerm
   (_    , Z)        -> liftToTerm 1
-  (_    , (S exp')) -> Term [Var ind exp'] $ fromIntegral (S (S exp'))
+  (_    , (S exp')) -> Term [Var n exp'] $ fromIntegral (S (S exp'))
 
 -- this works only because term can by construction contain
 -- at most one term that has a nonzero partial derivative
@@ -171,7 +165,7 @@ partialDTerm n (Term (v : vs) d) = case partialDVar n v of
 
 -- fold over the terms
 partialD :: C n -> Fin n -> C n
-partialD  (Terms t ts) n = foldMap (liftToC . partialDTerm n) $ t:ts
+partialD cn n = foldMap (liftToC . partialDTerm n) . cTerms $ cn
 
 gradient :: SNatI n => C n -> Vec n (C n)
 gradient c = fmap (partialD c) V.universe

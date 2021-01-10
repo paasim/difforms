@@ -41,9 +41,8 @@ type EvalLiftedC n = R n -> Term n -> Bool
 evalLiftedC :: EvalLiftedC n
 evalLiftedC r t = evalC r (liftToC t) == evalTerm r t
 
-mkCIsIdempotent :: Term n -> [Term n] -> Bool
-mkCIsIdempotent t ts = let (Terms t1 ts1) = mkC t ts
-                       in Terms t1 ts1 == mkC t1 ts1
+mkCIsIdempotent :: [Term n] -> Bool
+mkCIsIdempotent ts = mkC ts == (mkC . cTerms . mkC) ts
 
 semigroupSymmetric :: TwoC n
 semigroupSymmetric r1 r2 = (r1 <> r2) == (r2 <> r1)

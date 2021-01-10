@@ -27,7 +27,7 @@ showStrAsFun :: (Fin n, String) -> String
 showStrAsFun (n, str) = str <> " -> x_" <> show n
 
 genSimpleC :: SNatI n => Gen (C n)
-genSimpleC = mkC <$> arbitrary <*> resize 1 arbitrary
+genSimpleC = mkC <$> resize 2 arbitrary
 
 -- this is kind of hacky, but dont know another way
 -- of running genSimpleC over a Vec
@@ -56,7 +56,7 @@ pullbackTerm phi (Term vs d) =
 -- precomposes f with the manifold map,
 -- folds over terms
 pullbackC :: Phi n m -> C m -> C n
-pullbackC phi (Terms t ts) = foldMap (pullbackTerm phi) $ t:ts
+pullbackC phi = foldMap (pullbackTerm phi) . cTerms
 
 pullbackCovar :: SNatI n => Phi n m -> Covar m -> D (S Z) n
 pullbackCovar phi cv = d0 $ phiComp phi V.! covarDim cv
@@ -68,7 +68,7 @@ pullbackCoterm phi (Coterm (cv:::cvs) c) =
   exteriorProduct (pullbackCovar phi cv) . pullbackCoterm phi $ Coterm cvs c
 
 pullbackD :: SNatI n => Phi n m -> D p m -> D p n
-pullbackD phi (Coterms ctp ctps) = foldMap (pullbackCoterm phi) $ ctp:ctps
+pullbackD phi = foldMap (pullbackCoterm phi) . dCoterms
 
 -- evaluates phi (p ,v) componentwise
 pushforward :: (SNatI n, SNatI m) => Phi n m -> Vp n -> Vp m
