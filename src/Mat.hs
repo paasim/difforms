@@ -2,7 +2,6 @@
 {-# LANGUAGE DataKinds #-}
 module Mat where
 
-import Data.Fin ( Fin(..) )
 import Data.Type.Nat ( Nat(..), SNatI )
 import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
@@ -10,10 +9,10 @@ import Test.QuickCheck
 import Common
 
 -- Mat n m, Matrices as lists of m-dimensional real numbers
-data Mat n m a = Mat { mat :: Vec n (Vec m a) } deriving (Eq, Ord)
+newtype Mat n m a = Mat { mat :: Vec n (Vec m a) } deriving (Eq, Ord)
 
 instance Show a => Show (Mat n m a) where
-  show (Mat mat) = "Mat:\n[" <> printRows mat <> "]"
+  show (Mat m) = "Mat:\n[" <> printRows m <> "]"
 
 instance (Arbitrary a, SNatI n, SNatI m) => Arbitrary (Mat n m a) where
   arbitrary = Mat <$> arbitrary
@@ -46,7 +45,7 @@ matMatProduct :: (Monoid a, Semirng a, SNatI n, SNatI m, SNatI l)
 matMatProduct m1 m2 =  Mat . fmap (vecMatProduct m2) . mat $ m1
 
 sans :: Vec (S n) a -> Vec (S n) (Vec n a)
-sans (a ::: VNil) = VNil ::: VNil
+sans (_ ::: VNil) = VNil ::: VNil
 sans (a1 ::: a2 ::: as) = let tk = sans (a2 ::: as)
   in (a2 ::: as) ::: fmap (V.cons a1) tk
 

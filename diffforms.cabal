@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: defa37045cbe96baf0a146a0eedaa9c2fc334df83c689429f289a5642c56a01b
+-- hash: 25091c3798f63d90fe91da0ff01cfd48dde9cde26c7719e8f2ca459be39e5d55
 
 name:           diffforms
 version:        0.11.0.0
@@ -51,7 +51,7 @@ executable diffforms-exe
       Paths_diffforms
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror -Wno-unticked-promoted-constructors
   build-depends:
       QuickCheck
     , base >=4.7 && <5
@@ -73,7 +73,7 @@ test-suite diffforms-test
       Paths_diffforms
   hs-source-dirs:
       test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       QuickCheck
     , base >=4.7 && <5

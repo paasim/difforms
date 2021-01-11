@@ -16,13 +16,13 @@ data Var n = Var { varDim :: Fin n, varExp :: Nat } deriving (Eq, Ord)
 
 instance Show (Var n) where
   show (Var n Z)    = "x_" <> show n -- no need to show exponent of one
-  show (Var n exp)  = "x_" <> show n <> "^" <> show (S exp)
+  show (Var n e)  = "x_" <> show n <> "^" <> show (S e)
 
 instance SNatI n => Arbitrary (Var n) where
   arbitrary = Var <$> elements (V.toList V.universe) <*> resize 4 arbitrary
 
-evalVar :: Vec n (Number) -> Var n -> Number
-evalVar vn (Var ind exp) = (vn V.! ind) ^ (toNatural $ S exp)
+evalVar :: Vec n Number -> Var n -> Number
+evalVar vn (Var ind e) = (vn V.! ind) ^ toNatural (S e)
 
 -- for constructing valid instances of Term
 varDimEq :: Var n -> Var n -> Bool
@@ -40,7 +40,7 @@ varProd (Var n1 exp1) (Var _ exp2) = Var n1 $ S exp1 + exp2
 data Term n = ZeroTerm | Term [Var n] Number deriving (Eq, Ord)
 
 instance Show (Term n) where
-  show ZeroTerm    = show 0
+  show ZeroTerm    = show (mempty :: Number)
   show (Term [] d) = show d
   show (Term vs d) = "(" <> show d <> ")*" <> (L.intercalate "*" . fmap show $ vs)
 
@@ -68,7 +68,7 @@ liftToTerm d = Term [] d
 -- in ascending order for simpler comparison and printing
 mkTerm :: [Var n] -> Number -> Term n
 mkTerm _  0 = ZeroTerm
-mkTerm vs d = Term (combineSimilar varDimEq varProd . L.sort $ vs) d where
+mkTerm vs d = Term (combineSimilar varDimEq varProd . L.sort $ vs) d
 
 evalTerm :: Vec n Number -> Term n -> Number
 evalTerm _ ZeroTerm    = 0
@@ -81,9 +81,9 @@ negateTerm (Term vs d) = Term vs (negate d)
 
 -- for constructing valid instances of C
 termVarsEq :: Term n -> Term n -> Bool
-termVarsEq t1 t2 = vs t1 == vs t2 where
-  vs ZeroTerm    = Nothing
-  vs (Term vs _) = Just vs
+termVarsEq t1 t2 = getVs t1 == getVs t2 where
+  getVs ZeroTerm    = Nothing
+  getVs (Term vs _) = Just vs
 
 -- Product of two terms assuming the vars are equal
 termSum :: Term n -> Term n -> Term n
@@ -95,7 +95,7 @@ termSum (Term vs d) (Term _ d') =
 
 -- A sum of nonzero term(s), ie. polynomials as terms is of the form
 -- a*x_i*...*x_j + bx_h*...*x_k + ...
-data C n = Terms { cTerms :: [Term n] } deriving (Eq, Ord)
+newtype C n = Terms { cTerms :: [Term n] } deriving (Eq, Ord)
 
 instance Show (C n) where
   show = (<>) "C: " . L.intercalate " + " . fmap show . cTerms
@@ -154,8 +154,8 @@ partialDVar n v = case (n == varDim v, varExp v) of
 -- this works only because term can by construction contain
 -- at most one term that has a nonzero partial derivative
 partialDTerm :: Fin n -> Term n -> Term n
-partialDTerm n ZeroTerm                    = ZeroTerm
-partialDTerm n (Term [] _)                 = ZeroTerm
+partialDTerm _ ZeroTerm                    = ZeroTerm
+partialDTerm _ (Term [] _)                 = ZeroTerm
 partialDTerm n (Term (v : vs) d) = case partialDVar n v of
   ZeroTerm -> Term [v] 1 <> partialDTerm n (Term vs d)
   t'       -> t' <> Term vs d

@@ -39,7 +39,7 @@ unitV = V . V.repeat $ sempty
 lieBracket :: SNatI n => V n -> V n -> V n
 lieBracket (V v) (V w) = (V . fmap (pdSum v) $ w) <> ginv (V . fmap (pdSum w) $ v) where
   pdSum :: SNatI n => Vec n (C n) -> C n -> C n -- weighted sum of partial derivatives
-  pdSum v c = foldMap id . V.zipWith sappend v . fmap (partialD c) $ V.universe
+  pdSum v' c = foldMap id . V.zipWith sappend v' . fmap (partialD c) $ V.universe
 
 
 -- Tangent vector at point p

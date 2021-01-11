@@ -37,6 +37,9 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
+    - -Werror
+    - -Wno-unticked-promoted-constructors
     dependencies:
     - diffforms
 
@@ -48,6 +51,9 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
+    - -Werror
     dependencies:
     - diffforms
     - hspec
+

@@ -66,7 +66,7 @@ mkCoterm cvs c = let (isEven, cvs') = bubbleVec cvs
     (_, False) -> negateCoterm $ Coterm cvs' c -- negate because of anticommutativity
 
 evalCoterm :: Vec (S p) (V n) -> Coterm (S p) n -> C n
-evalCoterm vs ZeroCoterm = mempty
+evalCoterm _  ZeroCoterm     = mempty
 evalCoterm vs (Coterm cvs c) =
   sappend c . det . Mat . fmap (\v -> fmap (evalCovar v) cvs) $ vs
 
@@ -91,15 +91,15 @@ bubbleVec (a ::: as) = uncurry (insertVec a) $ bubbleVec as
 -- assumes that the vec is sorted
 uniqSortedVec :: Eq a => Vec n a -> Bool
 uniqSortedVec VNil                 = True
-uniqSortedVec (a ::: VNil)         = True
+uniqSortedVec (_ ::: VNil)         = True
 uniqSortedVec (a1 ::: a2 ::: rest) = a1 /= a2 && uniqSortedVec (a2 ::: rest)
 
 
 -- for constructing valid instances of D
 cotermVarsEq :: Coterm p n -> Coterm p n -> Bool
-cotermVarsEq ct1 ct2 = cvs ct1 == cvs ct2 where
-  cvs ZeroCoterm     = Nothing
-  cvs (Coterm cvs _) = Just cvs
+cotermVarsEq ct1 ct2 = getCvs ct1 == getCvs ct2 where
+  getCvs ZeroCoterm     = Nothing
+  getCvs (Coterm cvs _) = Just cvs
 
 -- Sum of two terms assuming the vars are equal
 cotermSum :: Coterm p n -> Coterm p n -> Coterm p n
@@ -112,7 +112,7 @@ cotermSum (Coterm cvs c) (Coterm _ c') =
 -- A differential form represented as a sum of nonzero coterm(s),
 -- ie. differential forms such as, f(x1,x2,x3)dx_1dx_2 + g(x1,x2,x3)dx_2dx_3
 -- where f,g are of type C 3
-data D p n = Coterms { dCoterms :: [Coterm p n] }
+newtype D p n = Coterms { dCoterms :: [Coterm p n] }
 
 instance Show (D p n) where
   show = (<>) "D:\n  " . L.intercalate "\n + " . fmap show . dCoterms
@@ -161,7 +161,7 @@ dCotermBy (Coterm cvs c) cv = mkCoterm (cv ::: cvs) (partialD c . covarDim $ cv)
 
 -- fold over all the dimensions
 dCoterm :: SNatI n => Coterm p n -> D (S p) n
-dCoterm ct = foldMap (liftToD . dCotermBy ct . Covar) $ V.universe
+dCoterm ct = foldMap (liftToD . dCotermBy ct . Covar) V.universe
 
 -- foldr over coterms
 d :: SNatI n => D p n -> D (S p) n

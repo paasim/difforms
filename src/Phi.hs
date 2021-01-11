@@ -32,7 +32,7 @@ genSimpleC = mkC <$> resize 2 arbitrary
 -- this is kind of hacky, but dont know another way
 -- of running genSimpleC over a Vec
 genSimpleCs :: (SNatI m, SNatI n) => Gen (Vec m (C n))
-genSimpleCs = traverse (\u -> genSimpleC) $ V.repeat ()
+genSimpleCs = traverse (const genSimpleC) $ V.repeat ()
 
 -- Cs that contain at most two terms because the
 -- computations become quite expensive if the sums
@@ -45,13 +45,13 @@ evalPhi vn = fmap (evalC vn) . phiComp
 
 -- if f = phi x_m, pullback x_m = f^exp
 pullbackVar :: Phi n m -> Var m -> C n
-pullbackVar phi (Var n exp) = nthPower (S exp) $ phiComp phi V.! n
+pullbackVar phi (Var n e) = nthPower (S e) $ phiComp phi V.! n
 
 -- folds over vars
 pullbackTerm :: Phi n m -> Term m -> C n
 pullbackTerm _ ZeroTerm      = liftToC ZeroTerm
-pullbackTerm phi (Term vs d) =
-  foldr sappend (liftToC $ liftToTerm d) $ fmap (pullbackVar phi) vs
+pullbackTerm phi (Term vs num) =
+  foldr sappend (liftToC $ liftToTerm num) $ fmap (pullbackVar phi) vs
 
 -- precomposes f with the manifold map,
 -- folds over terms
