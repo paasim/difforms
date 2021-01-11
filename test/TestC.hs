@@ -1,10 +1,7 @@
 module TestC ( testC ) where
 
-import Data.Fin ( Fin(..) )
-import qualified Data.Fin as F
 import qualified Data.Type.Nat as N
 import Data.Vec.Lazy ( Vec(..) )
-import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Common
@@ -40,7 +37,8 @@ type EvalLiftedC n = Vec n Number -> Term n -> Bool
 evalLiftedC :: EvalLiftedC n
 evalLiftedC r t = evalC r (liftToC t) == evalTerm r t
 
-mkCIsIdempotent :: [Term n] -> Bool
+type MkCIsIdempotent n = [Term n] -> Bool
+mkCIsIdempotent :: MkCIsIdempotent n
 mkCIsIdempotent ts = mkC ts == (mkC . cTerms . mkC) ts
 
 semigroupSymmetric :: TwoC n
@@ -102,6 +100,8 @@ testC = hspec $ do
   describe "Tests for C, C:" $ do
     prop "evaluating lifted term is the same as evaluating the term"
       (evalLiftedC :: EvalLiftedC N.Nat3)
+    prop "mkC is idempotent"
+      (mkCIsIdempotent :: MkCIsIdempotent N.Nat3)
     prop "semigroup symmetric"
       (semigroupSymmetric :: TwoC N.Nat3)
     prop "semigroup associative"

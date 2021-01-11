@@ -4,7 +4,6 @@ module TestD ( testD ) where
 import Data.Type.Nat ( Nat(..) )
 import qualified Data.Type.Nat as N
 import Data.Vec.Lazy ( Vec(..) )
-import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Common
@@ -29,18 +28,18 @@ semigroupAssociatesD vs d1 d2 d3 =
 
 type MonoidLeftIdD p n = Vec p (V n) -> OneD p n
 monoidLeftIdD :: N.SNatI n => MonoidLeftIdD (S p) n
-monoidLeftIdD vs d = evalD vs (mempty <> d) == evalD vs d
+monoidLeftIdD vs d' = evalD vs (mempty <> d') == evalD vs d'
 
 type GroupInvD p n = Vec p (V n) -> OneD p n
 groupInvD :: N.SNatI n => GroupInvD (S p) n
-groupInvD vs d =
-  evalD vs d <> evalD vs (ginv d) == evalD vs mempty
-   && evalD vs (ginv d) <> evalD vs d == evalD vs mempty
+groupInvD vs d' =
+  evalD vs d' <> evalD vs (ginv d') == evalD vs mempty
+   && evalD vs (ginv d') <> evalD vs d' == evalD vs mempty
 
 type ModuleAddDistributes1D p n = C n -> C n -> Vec p (V n) -> OneD p n
 moduleAddDistributes1D :: N.SNatI n => ModuleAddDistributes1D (S p) n
-moduleAddDistributes1D c1 c2 vs d =
-  evalD vs (mmult c1 d <> mmult c2 d) == evalD vs (mmult (c1 <> c2) d)
+moduleAddDistributes1D c1 c2 vs d' =
+  evalD vs (mmult c1 d' <> mmult c2 d') == evalD vs (mmult (c1 <> c2) d')
 
 type ModuleAddDistributes2D p n = C n -> Vec p (V n) -> TwoD p n
 moduleAddDistributes2D :: N.SNatI n => ModuleAddDistributes2D (S p) n
@@ -49,12 +48,12 @@ moduleAddDistributes2D c vs d1 d2 =
 
 type ModuleMultAssociatesD p n = C n -> C n -> Vec p (V n) -> OneD p n
 moduleMultAssociatesD :: N.SNatI n => ModuleMultAssociatesD (S p) n
-moduleMultAssociatesD c1 c2 vs d =
-  evalD vs (mmult c1 (mmult c2 d)) == evalD vs (mmult (c1 `sappend` c2) d)
+moduleMultAssociatesD c1 c2 vs d' =
+  evalD vs (mmult c1 (mmult c2 d')) == evalD vs (mmult (c1 `sappend` c2) d')
 
 type Module1IdD p n = Vec p (V n) -> OneD p n
 module1IdD :: N.SNatI n => Module1IdD (S p) n
-module1IdD vs d = evalD vs (mmult sempty d) == evalD vs d
+module1IdD vs d' = evalD vs (mmult sempty d') == evalD vs d'
 
 type LinearAddD p n = Vec p (V n) -> TwoD p n
 linearAddD :: N.SNatI n => LinearAddD (S p) n
@@ -62,7 +61,7 @@ linearAddD vs d1 d2 = evalD vs (d1 <> d2) == evalD vs d1 <> evalD vs d2
 
 type LinearMultD p n = C n -> Vec p (V n) -> OneD p n
 linearMultD :: N.SNatI n => LinearMultD (S p) n
-linearMultD c vs d = evalD vs (mmult c d) == sappend c (evalD vs d)
+linearMultD c vs d' = evalD vs (mmult c d') == sappend c (evalD vs d')
 
 type ExtProdSuperComm p n = Vec (N.Plus p p) (V n) -> TwoD p n
 extProdSuperComm :: Number -> ExtProdSuperComm (S p) n

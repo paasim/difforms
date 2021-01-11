@@ -1,12 +1,9 @@
 {-# LANGUAGE DataKinds #-}
 module TestMat ( testMat ) where
 
-import Data.Fin ( Fin(..) )
-import qualified Data.Fin as F
 import Data.Type.Nat ( Nat(..), SNatI )
 import qualified Data.Type.Nat as N
 import Data.Vec.Lazy ( Vec(..) )
-import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Common

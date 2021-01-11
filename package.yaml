@@ -53,6 +53,7 @@ tests:
     - -with-rtsopts=-N
     - -Wall
     - -Werror
+    - -Wno-unticked-promoted-constructors
     dependencies:
     - diffforms
     - hspec

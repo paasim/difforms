@@ -4,7 +4,6 @@ module TestPhi ( testPhi ) where
 import Data.Type.Nat ( Nat(..), SNatI )
 import qualified Data.Type.Nat as N
 import Data.Vec.Lazy ( Vec(..) )
-import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Common
@@ -35,9 +34,9 @@ pullbackCAdd :: (SNatI n, SNatI m) => PullbackCAdd n m
 pullbackCAdd phi cm1 cm2 =
   pullbackC phi (cm1 <> cm2) == pullbackC phi cm1 <> pullbackC phi cm2
 
-type PullbackCMult n m = Phi n m -> Number -> Vec n Number -> C m -> Bool
+type PullbackCMult n m = Phi n m -> Number -> C m -> Bool
 pullbackCMult :: (SNatI n, SNatI m) => PullbackCMult n m
-pullbackCMult phi r rn cm =
+pullbackCMult phi r cm =
   (amult r . pullbackC phi) cm == (pullbackC phi . amult r) cm
 
 

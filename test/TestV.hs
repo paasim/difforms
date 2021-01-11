@@ -3,7 +3,6 @@ module TestV ( testV ) where
 import Data.Type.Nat ( SNatI )
 import qualified Data.Type.Nat as N
 import Data.Vec.Lazy ( Vec(..) )
-import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Common
@@ -70,8 +69,7 @@ leibnizRuleV c1 c2 v =
 type LieBracketDef n = C n -> TwoV n
 lieBracketDef :: SNatI n => LieBracketDef n
 lieBracketDef c v w =
-  evalV c (lieBracket v w) == evalV (evalV c w) v
-
+  evalV c (lieBracket v w) == evalV (evalV c w) v <> ginv (evalV (evalV c v) w)
 
 type LieBracketLeibniz n = C n -> C n -> TwoV n
 lieBracketLeibniz :: SNatI n => LieBracketLeibniz n
@@ -212,6 +210,8 @@ testV = hspec $ do
 
   describe "Tests for V, Lie bracket:" $ do
     prop "Lie bracket satisfies the definition"
+      (lieBracketDef :: LieBracketDef N.Nat3)
+    prop "Lie bracket satisfies the leibniz rule"
       (lieBracketLeibniz :: LieBracketLeibniz N.Nat3)
     prop "Lie bracket antisymmetric"
       (lieBracketAntisymmetric :: LieBracketAntisymmetric N.Nat3)
