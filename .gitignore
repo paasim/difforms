@@ -1,5 +1,5 @@
 .stack-work/
-diplo.cabal
+difforms.cabal
 *~
 stack.yaml.lock
 *.swp
