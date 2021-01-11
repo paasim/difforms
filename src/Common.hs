@@ -3,6 +3,8 @@
 module Common where
 
 import Data.Ratio ( (%) )
+import Data.Vec.Lazy ( Vec(..) )
+import qualified Data.Vec.Lazy as V
 import Test.QuickCheck
 
 -- Definitions of Semirng, Semiring and Algebra
@@ -44,6 +46,25 @@ instance Arbitrary Number where
     denom <- arbitrary :: Gen Word
     return . Number $ toInteger num % toInteger (denom + 1)
 
+instance Semigroup Number where
+  (<>) = (+)
+
+instance Monoid Number where
+  mempty = 0
+
+instance Group Number where
+  ginv = negate
+
+instance Semirng Number where
+  sappend = (*)
+
+instance Semiring Number where
+  sempty = 1
+
+dotProduct :: Vec n Number -> Vec n Number -> Number
+dotProduct vn1 vn2 = foldMap id $ V.zipWith sappend vn1 vn2
+
+
 merge :: Ord a => [a] -> [a] -> [a]
 merge []     l     = l
 merge l      []    = l
@@ -52,13 +73,9 @@ merge (x:xs) (y:ys) = if x < y
   else y : merge (x:xs) ys
 
 combineSimilar :: (a -> a -> Bool) -> (a -> a -> a) -> [a] -> [a]
-combineSimilar eq comb [] = []
-combineSimilar eq comb (x:[]) = [x]
+combineSimilar _ _ []  = []
+combineSimilar _ _ [x] = [x]
 combineSimilar eq comb (x1:x2:xs) = if eq x1 x2
   then combineSimilar eq comb (comb x1 x2 : xs)
   else x1 : combineSimilar eq comb (x2:xs)
-
-fromEmpty :: (a -> [a] -> b) -> a -> [a] -> b
-fromEmpty f defVal []     = f defVal []
-fromEmpty f defVal (x:xs) = f x xs
 

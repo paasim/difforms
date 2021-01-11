@@ -1,5 +1,3 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 module V where
 
@@ -9,7 +7,6 @@ import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
 import Test.QuickCheck
 import Common
-import R
 import C
 
 -- Vector field
@@ -34,7 +31,7 @@ instance SNatI n => Module (V n) (C n) where
   mmult c = V . fmap (`sappend` c) . vComp
 
 evalV :: SNatI n => C n -> V n -> C n
-evalV c v = foldr (<>) mempty . V.zipWith sappend (vComp v) . fmap (partialD c) $ V.universe
+evalV c v = foldMap id . V.zipWith sappend (vComp v) . fmap (partialD c) $ V.universe
 
 unitV :: SNatI n => V n
 unitV = V . V.repeat $ sempty
@@ -42,31 +39,31 @@ unitV = V . V.repeat $ sempty
 lieBracket :: SNatI n => V n -> V n -> V n
 lieBracket (V v) (V w) = (V . fmap (pdSum v) $ w) <> ginv (V . fmap (pdSum w) $ v) where
   pdSum :: SNatI n => Vec n (C n) -> C n -> C n -- weighted sum of partial derivatives
-  pdSum v c = foldr (<>) mempty . V.zipWith sappend v . fmap (partialD c) $ V.universe
+  pdSum v' c = foldMap id . V.zipWith sappend v' . fmap (partialD c) $ V.universe
 
 
 -- Tangent vector at point p
-data Vp n = Vp { vpP :: R n, vpV :: Vec n Number }
+data Vp n = Vp { vpP :: Vec n Number, vpV :: Vec n Number }
 
 instance Show (Vp n) where
-  show (Vp p v) = "Vp: " <> show (R v) <> "\n at: " <> show p
+  show (Vp p v) = "Vp: " <> show v <> "\n at: " <> show p
 
 instance SNatI n => Arbitrary (Vp n) where
   arbitrary = Vp <$> arbitrary <*> arbitrary
 
 evalVp :: SNatI n => C n -> Vp n -> Number
-evalVp c (Vp p v) = dotProduct (R v) . R . fmap (evalC p . partialD c) $ V.universe
+evalVp c (Vp p v) = dotProduct v . fmap (evalC p . partialD c) $ V.universe
 
 -- basically a semigroup but this may fail if the base points are not the same...
 -- Vp n is a semigroup only when the basepoints are the same
 vpappend :: Vp n -> Vp n -> Maybe (Vp n)
-vpappend (Vp p1 v1) (Vp p2 v2) = if p1 /= p2 then Nothing else Just . Vp p1 . x $ R v1 <> R v2
+vpappend (Vp p1 v1) (Vp p2 v2) = if p1 /= p2 then Nothing else Just . Vp p1 $ v1 <> v2
 
 -- this is the ModuleQ-multiplication
 vpmult :: SNatI n => Number -> Vp n -> Vp n
 vpmult d (Vp p v) = Vp p $ fmap (* d) v
 
-vToVp :: V n -> R n -> Vp n
+vToVp :: V n -> Vec n Number -> Vp n
 vToVp v r = Vp r . fmap (evalC r) . vComp $ v
 
 unitVp :: SNatI n => Vp n

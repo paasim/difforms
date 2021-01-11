@@ -10,7 +10,7 @@ import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
 import Test.QuickCheck
 import Common
-import R
+import Mat
 import C
 import V
 
@@ -24,7 +24,7 @@ instance SNatI n => Arbitrary (Covar n) where
   arbitrary = Covar <$> (elements . V.toList $ V.universe)
 
 evalCovar :: V n -> Covar n -> C n
-evalCovar v (Covar n) = vComp v V.! n
+evalCovar v cv = vComp v V.! covarDim cv
 
 -- ZeroCoterm corresponds to the case where C n is mempty
 data Coterm p n = ZeroCoterm | Coterm (Vec p (Covar n)) (C n) deriving (Eq, Ord)
@@ -65,10 +65,10 @@ mkCoterm cvs c = let (isEven, cvs') = bubbleVec cvs
     (_,  True) -> Coterm cvs' c
     (_, False) -> negateCoterm $ Coterm cvs' c -- negate because of anticommutativity
 
-evalCoterm :: Vec p (V n) -> Coterm p n -> C n
-evalCoterm vs ZeroCoterm = mempty
-evalCoterm vs (Coterm cvs c) = sappend c . foldr sappend sempty
-  $ V.zipWith evalCovar vs cvs
+evalCoterm :: Vec (S p) (V n) -> Coterm (S p) n -> C n
+evalCoterm _  ZeroCoterm     = mempty
+evalCoterm vs (Coterm cvs c) =
+  sappend c . det . Mat . fmap (\v -> fmap (evalCovar v) cvs) $ vs
 
 negateCoterm :: Coterm p n -> Coterm p n
 negateCoterm ZeroCoterm     = ZeroCoterm
@@ -91,15 +91,15 @@ bubbleVec (a ::: as) = uncurry (insertVec a) $ bubbleVec as
 -- assumes that the vec is sorted
 uniqSortedVec :: Eq a => Vec n a -> Bool
 uniqSortedVec VNil                 = True
-uniqSortedVec (a ::: VNil)         = True
+uniqSortedVec (_ ::: VNil)         = True
 uniqSortedVec (a1 ::: a2 ::: rest) = a1 /= a2 && uniqSortedVec (a2 ::: rest)
 
 
 -- for constructing valid instances of D
 cotermVarsEq :: Coterm p n -> Coterm p n -> Bool
-cotermVarsEq ct1 ct2 = cvs ct1 == cvs ct2 where
-  cvs ZeroCoterm     = Nothing
-  cvs (Coterm cvs _) = Just cvs
+cotermVarsEq ct1 ct2 = getCvs ct1 == getCvs ct2 where
+  getCvs ZeroCoterm     = Nothing
+  getCvs (Coterm cvs _) = Just cvs
 
 -- Sum of two terms assuming the vars are equal
 cotermSum :: Coterm p n -> Coterm p n -> Coterm p n
@@ -112,67 +112,60 @@ cotermSum (Coterm cvs c) (Coterm _ c') =
 -- A differential form represented as a sum of nonzero coterm(s),
 -- ie. differential forms such as, f(x1,x2,x3)dx_1dx_2 + g(x1,x2,x3)dx_2dx_3
 -- where f,g are of type C 3
-data D p n = Coterms (Coterm p n) [Coterm p n]
+newtype D p n = Coterms { dCoterms :: [Coterm p n] }
 
 instance Show (D p n) where
-  show (Coterms ctp ctps) = (<>) "D:\n  " . L.intercalate "\n + " . fmap show $ ctp:ctps
+  show = (<>) "D:\n  " . L.intercalate "\n + " . fmap show . dCoterms
 
 instance Semigroup (D p n) where
-  (Coterms ct cts) <> (Coterms ct' cts') =
-    fromEmpty Coterms ZeroCoterm -- if the result is an empty list, take a ZeroCoterm
-    . filter (ZeroCoterm /=) -- Remove 0s from the sum
-    . combineSimilar cotermVarsEq cotermSum -- adx_1dx_2 + bdx_1dx_2 = (a+b)dx_1dx_2 etc.
-    $ merge (ct:cts) (ct':cts') --these are already ordered so a merge is enough
+  dpn <> dpn' = sortedCotermsIntoD $ merge (dCoterms dpn) (dCoterms dpn')
 
 instance Monoid (D p n) where
-  mempty = Coterms ZeroCoterm []
+  mempty = Coterms []
 
 instance Group (D p n) where
-  ginv (Coterms ctp ctps) = mkD (negateCoterm ctp) $ fmap negateCoterm ctps
+  ginv = mkD . fmap negateCoterm . dCoterms
 
 instance Module (D p n) (C n) where
-  mmult c (Coterms ctp ctps) = mkD (ctpMult c ctp) $ fmap (ctpMult c) ctps
+  mmult c = mkD . fmap (ctpMult c) . dCoterms
 
 instance (SNatI p, SNatI n) => Arbitrary (D p n) where
-  arbitrary = mkD <$> arbitrary <*> resize 4 arbitrary
+  arbitrary = mkD <$> resize 4 arbitrary
 
 liftToD :: Coterm p n -> D p n
-liftToD ctp = mkD ctp []
+liftToD ctp = mkD [ctp]
 
-evalD :: Vec p (V n) -> D p n -> C n
-evalD vs (Coterms ctp ctps) =
-  foldr (<>) (evalCoterm vs ctp) . fmap (evalCoterm vs) $ ctps
+evalD :: Vec (S p) (V n) -> D (S p) n -> C n
+evalD vs = foldMap (evalCoterm vs) . dCoterms
 
--- see comments for the semigroup instance, this is similar
--- but does not assume that the coterms are sorted
-mkD :: Coterm p n -> [Coterm p n] -> D p n
-mkD ct cts = fromEmpty Coterms ZeroCoterm
-           . filter (ZeroCoterm /=)
-           . combineSimilar cotermVarsEq cotermSum
-           $ L.sort (ct:cts) where
+mkD :: [Coterm p n] -> D p n
+mkD = sortedCotermsIntoD . L.sort
+
+sortedCotermsIntoD :: [Coterm p n] -> D p n
+sortedCotermsIntoD = Coterms
+                   . filter (ZeroCoterm /=) -- Remove 0s from the sum
+                   . combineSimilar cotermVarsEq cotermSum -- adx_1dx_2 + bdx_1dx_2 = (a+b)dx_1dx_2 etc.
 
 -- cotermMappend is the product (2dx_3 * 3dx_1 = -6dx_1dx_3)
 extProdCoterm :: D p2 n -> Coterm p1 n -> D (Plus p1 p2) n
-extProdCoterm (Coterms ctp ctps) ctp' =
-  mkD (cotermMappend ctp' ctp) $ fmap (cotermMappend ctp') ctps
+extProdCoterm dpn ct = mkD . fmap (cotermMappend ct) . dCoterms $ dpn
 
 -- fold over the coterms
 exteriorProduct :: D p1 n -> D p2 n -> D (Plus p1 p2) n
-exteriorProduct (Coterms ctp ctps) d =
-  foldr (<>) (extProdCoterm d ctp) . fmap (extProdCoterm d) $ ctps
+exteriorProduct dpn1 dpn2 = foldMap (extProdCoterm dpn2) . dCoterms $ dpn1
 
 -- partial derivative with respect to a given dimension
 dCotermBy :: Coterm p n -> Covar n -> Coterm (S p) n
-dCotermBy ZeroCoterm     _ = ZeroCoterm
+dCotermBy ZeroCoterm     _  = ZeroCoterm
 dCotermBy (Coterm cvs c) cv = mkCoterm (cv ::: cvs) (partialD c . covarDim $ cv)
 
 -- fold over all the dimensions
 dCoterm :: SNatI n => Coterm p n -> D (S p) n
-dCoterm ctp = foldr (<>) mempty . fmap (liftToD . dCotermBy ctp . Covar) $ V.universe
+dCoterm ct = foldMap (liftToD . dCotermBy ct . Covar) V.universe
 
 -- foldr over coterms
 d :: SNatI n => D p n -> D (S p) n
-d (Coterms ctp ctps) = foldr (<>) (dCoterm ctp) $ fmap dCoterm ctps
+d = foldMap dCoterm . dCoterms
 
 -- same as d but for C n which are interpreted as 0-forms (D Z n)
 d0 :: SNatI n => C n -> D (S Z) n
