@@ -1,14 +1,9 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 module TestD ( testD ) where
 
-import qualified Data.Type.Nat as N
 import Data.Type.Nat ( Nat(..) )
+import qualified Data.Type.Nat as N
 import Data.Vec.Lazy ( Vec(..) )
-import qualified Data.Vec.Lazy as V
-import Data.Fin ( Fin(..) )
-import qualified Data.Fin as F
-import Data.List.NonEmpty ( NonEmpty(..) )
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck

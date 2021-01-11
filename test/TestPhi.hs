@@ -2,8 +2,8 @@
 module TestPhi ( testPhi ) where
 
 import Data.Type.Nat ( Nat(..), SNatI )
-import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Type.Nat as N
+import Data.Vec.Lazy ( Vec(..) )
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck

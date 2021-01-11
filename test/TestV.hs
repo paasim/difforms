@@ -1,10 +1,8 @@
 module TestV ( testV ) where
 
+import Data.Type.Nat ( SNatI )
 import qualified Data.Type.Nat as N
 import Data.Vec.Lazy ( Vec(..) )
-import Data.Fin ( Fin(..) )
-import qualified Data.Fin as F
-import Data.List.NonEmpty ( NonEmpty(..) )
 import Test.QuickCheck
 import Test.Hspec
 import Test.Hspec.QuickCheck
@@ -18,76 +16,76 @@ type TwoV n   = V n -> OneV n
 type ThreeV n = V n -> TwoV n
 
 type SemigroupSymmetricV n = C n -> TwoV n
-semigroupSymmetricV :: N.SNatI n => SemigroupSymmetricV n
+semigroupSymmetricV :: SNatI n => SemigroupSymmetricV n
 semigroupSymmetricV c v1 v2 = evalV c (v1 <> v2) == evalV c (v2 <> v1)
 
 type SemigroupAssociatesV n = C n -> ThreeV n
-semigroupAssociatesV :: N.SNatI n => SemigroupAssociatesV n
+semigroupAssociatesV :: SNatI n => SemigroupAssociatesV n
 semigroupAssociatesV c v1 v2 v3 =
   evalV c ((v1 <> v2) <> v3) == evalV c (v1 <> (v2 <> v3))
 
 type MonoidLeftIdV n = C n -> OneV n
-monoidLeftIdV :: N.SNatI n => MonoidLeftIdV n
+monoidLeftIdV :: SNatI n => MonoidLeftIdV n
 monoidLeftIdV c v = evalV c (mempty <> v) == evalV c v
 
 type GroupInvV n = C n -> OneV n
-groupInvV :: N.SNatI n => GroupInvV n
+groupInvV :: SNatI n => GroupInvV n
 groupInvV c v = evalV c v <> evalV c (ginv v) == evalV c mempty
              && evalV c (ginv v) <> evalV c v == evalV c mempty
 
 type ModuleAddDistributes1V n = C n -> C n -> C n -> OneV n
-moduleAddDistributes1V :: N.SNatI n => ModuleAddDistributes1V n
+moduleAddDistributes1V :: SNatI n => ModuleAddDistributes1V n
 moduleAddDistributes1V c1 c2 c v =
   evalV c (mmult c1 v <> mmult c2 v) == evalV c (mmult (c1 <> c2) v)
 
 type ModuleAddDistributes2V n = C n -> C n -> TwoV n
-moduleAddDistributes2V :: N.SNatI n => ModuleAddDistributes2V n
+moduleAddDistributes2V :: SNatI n => ModuleAddDistributes2V n
 moduleAddDistributes2V c' c v1 v2 =
   evalV c (mmult c' v1 <> mmult c' v2) == evalV c (mmult c' (v1 <> v2))
 
 type ModuleMultAssociatesV n = C n -> C n -> C n -> OneV n
-moduleMultAssociatesV :: N.SNatI n => ModuleMultAssociatesV n
+moduleMultAssociatesV :: SNatI n => ModuleMultAssociatesV n
 moduleMultAssociatesV c1 c2 c v =
   evalV c (mmult c1 (mmult c2 v)) == evalV c (mmult (c1 `sappend` c2) v)
 
 type Module1IdV n = C n -> OneV n
-module1IdV :: N.SNatI n => Module1IdV n
+module1IdV :: SNatI n => Module1IdV n
 module1IdV c v = evalV c (mmult sempty v) == evalV c v
 
 type LinearAddV n = C n -> C n -> OneV n
-linearAddV :: N.SNatI n => LinearAddV n
+linearAddV :: SNatI n => LinearAddV n
 linearAddV c1 c2 v = evalV (c1 <> c2) v == evalV c1 v <> evalV c2 v
 
 type LinearMultV n = Number -> C n -> OneV n
-linearMultV :: N.SNatI n => LinearMultV n
+linearMultV :: SNatI n => LinearMultV n
 linearMultV d c v = evalV (amult d c) v == amult d (evalV c v)
 
 type LeibnizRuleV n =  C n -> C n -> OneV n
-leibnizRuleV :: N.SNatI n => LeibnizRuleV n
+leibnizRuleV :: SNatI n => LeibnizRuleV n
 leibnizRuleV c1 c2 v =
   evalV (c1 `sappend` c2) v == (evalV c1 v `sappend` c2) <>
                                  (c1 `sappend` evalV c2 v)
 
 
 type LieBracketDef n = C n -> TwoV n
-lieBracketDef :: N.SNatI n => LieBracketDef n
+lieBracketDef :: SNatI n => LieBracketDef n
 lieBracketDef c v w =
   evalV c (lieBracket v w) == evalV (evalV c w) v
 
 
 type LieBracketLeibniz n = C n -> C n -> TwoV n
-lieBracketLeibniz :: N.SNatI n => LieBracketLeibniz n
+lieBracketLeibniz :: SNatI n => LieBracketLeibniz n
 lieBracketLeibniz c1 c2 v w = let vw = lieBracket v w
   in evalV (c1 `sappend` c2) vw == (evalV c1 vw `sappend` c2) <>
                                    (c1 `sappend` evalV c2 vw)
 
 type LieBracketAntisymmetric n = C n -> TwoV n
-lieBracketAntisymmetric :: N.SNatI n => LieBracketAntisymmetric n
+lieBracketAntisymmetric :: SNatI n => LieBracketAntisymmetric n
 lieBracketAntisymmetric c v w =
   evalV c (lieBracket v w) == ginv (evalV c (lieBracket w v))
 
 type LieBracketBilinear1 n = Number -> Number -> C n -> ThreeV n
-lieBracketBilinear1 :: N.SNatI n => LieBracketBilinear1 n
+lieBracketBilinear1 :: SNatI n => LieBracketBilinear1 n
 lieBracketBilinear1 r1 r2 c v u w =
   let r1u = mmult (amult r1 sempty) u
       r2v = mmult (amult r2 sempty) v
@@ -96,7 +94,7 @@ lieBracketBilinear1 r1 r2 c v u w =
   in evalV c (lieBracket (r1u <> r2v) w) == evalV c (r1uw <> r2vw)
 
 type LieBracketBilinear2 n = Number -> Number -> C n -> ThreeV n
-lieBracketBilinear2 :: N.SNatI n => LieBracketBilinear2 n
+lieBracketBilinear2 :: SNatI n => LieBracketBilinear2 n
 lieBracketBilinear2 r1 r2 c u v w =
   let r1v = mmult (amult r1 sempty) v
       r2w = mmult (amult r2 sempty) w
@@ -105,7 +103,7 @@ lieBracketBilinear2 r1 r2 c u v w =
   in evalV c (lieBracket u (r1v <> r2w)) == evalV c (r1uv <> r2uw)
 
 type LieBracketJacobi n = C n -> ThreeV n
-lieBracketJacobi :: N.SNatI n => LieBracketJacobi n
+lieBracketJacobi :: SNatI n => LieBracketJacobi n
 lieBracketJacobi c u v w =
   let uvw = lieBracket u $ lieBracket v w
       vwu = lieBracket v $ lieBracket w u
@@ -119,14 +117,14 @@ type TwoVp n   = Vec n Number -> OneVp n
 type ThreeVp n = Vec n Number -> TwoVp n
 
 type SemigroupSymmetricVp n = C n -> TwoVp n
-semigroupSymmetricVp :: N.SNatI n => SemigroupSymmetricVp n
+semigroupSymmetricVp :: SNatI n => SemigroupSymmetricVp n
 semigroupSymmetricVp c v1 v2 p = let vp1 = Vp p v1
                                      vp2 = Vp p v2
   in fmap (evalVp c) (vpappend vp1 vp2)
     == fmap (evalVp c) (vpappend vp2 vp1)
 
 type SemigroupAssociatesVp n = C n -> ThreeVp n
-semigroupAssociatesVp :: N.SNatI n => SemigroupAssociatesVp n
+semigroupAssociatesVp :: SNatI n => SemigroupAssociatesVp n
 semigroupAssociatesVp c v1 v2 v3 p = let vp1 = Vp p v1
                                          vp2 = Vp p v2
                                          vp3 = Vp p v3
@@ -147,40 +145,40 @@ groupInvVp c v p = let vp = Vp p v
 -}
 
 type ModuleAddDistributes1Vp n = Number -> Number -> C n -> OneVp n
-moduleAddDistributes1Vp :: N.SNatI n => ModuleAddDistributes1Vp n
+moduleAddDistributes1Vp :: SNatI n => ModuleAddDistributes1Vp n
 moduleAddDistributes1Vp d1 d2 c v p = let vp = Vp p v
   in fmap (evalVp c) (vpappend (vpmult d1 vp) (vpmult d2 vp))
     == Just (evalVp c $ vpmult (d1 + d2) vp)
 
 type ModuleAddDistributes2Vp n = Number -> C n -> TwoVp n
-moduleAddDistributes2Vp :: N.SNatI n => ModuleAddDistributes2Vp n
+moduleAddDistributes2Vp :: SNatI n => ModuleAddDistributes2Vp n
 moduleAddDistributes2Vp d c v1 v2 p = let vp1 = Vp p v1
                                           vp2 = Vp p v2
   in fmap (evalVp c) (vpappend (vpmult d vp1) (vpmult d vp2))
     == fmap (evalVp c . vpmult d) (vpappend vp1 vp2)
 
 type ModuleMultAssociatesVp n = Number -> Number -> C n -> OneVp n
-moduleMultAssociatesVp :: N.SNatI n => ModuleMultAssociatesVp n
+moduleMultAssociatesVp :: SNatI n => ModuleMultAssociatesVp n
 moduleMultAssociatesVp d1 d2 c v p = let vp = Vp p v
   in evalVp c (vpmult d1 (vpmult d2 vp)) == evalVp c (vpmult (d1 * d2) vp)
 
 type Module1IdVp n = C n -> OneVp n
-module1IdVp :: N.SNatI n => Module1IdVp n
+module1IdVp :: SNatI n => Module1IdVp n
 module1IdVp c v p = let vp = Vp p v
   in evalVp c (vpmult 1 vp) == evalVp c vp
 
 type LinearAddVp n = C n -> C n -> OneVp n
-linearAddVp :: N.SNatI n => LinearAddVp n
+linearAddVp :: SNatI n => LinearAddVp n
 linearAddVp c1 c2 v p = let vp = Vp p v
   in evalVp (c1 <> c2) vp == evalVp c1 vp + evalVp c2 vp
 
 type LinearMultVp n = Number -> C n -> OneVp n
-linearMultVp :: N.SNatI n => LinearMultVp n
+linearMultVp :: SNatI n => LinearMultVp n
 linearMultVp d c v p = let vp = Vp p v
   in evalVp (amult d c) vp == d * evalVp c vp
 
 type LeibnizRuleVp n =  C n -> C n -> OneVp n
-leibnizRuleVp :: N.SNatI n => LeibnizRuleVp n
+leibnizRuleVp :: SNatI n => LeibnizRuleVp n
 leibnizRuleVp c1 c2 v p = let vp = Vp p v
   in evalVp (c1 `sappend` c2) vp == (evalVp c1 vp * evalC p c2) +
                                         (evalC p c1 * evalVp c2 vp)

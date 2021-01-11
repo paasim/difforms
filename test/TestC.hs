@@ -1,8 +1,8 @@
 module TestC ( testC ) where
 
-import qualified Data.Type.Nat as N
 import Data.Fin ( Fin(..) )
 import qualified Data.Fin as F
+import qualified Data.Type.Nat as N
 import Data.Vec.Lazy ( Vec(..) )
 import Test.QuickCheck
 import Test.Hspec

@@ -1,11 +1,9 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE DataKinds #-}
 module C where
 
 import Data.Fin ( Fin(..) )
 import Data.Type.Nat ( Nat(..), SNatI, toNatural )
 import Data.Vec.Lazy ( Vec(..) )
-import Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.Vec.Lazy as V
 import qualified Data.List as L
 import Test.QuickCheck
