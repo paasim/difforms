@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
 module C where
 
 import Data.Fin ( Fin(..) )
@@ -163,6 +164,19 @@ partialDTerm n (Term (v : vs) d) = case partialDVar n v of
 -- fold over the terms
 partialD :: C n -> Fin n -> C n
 partialD cn n = foldMap (liftToC . partialDTerm n) . cTerms $ cn
+
+-- This could probably be simplified
+antiDTerm :: Fin n -> Term n -> Term n
+antiDTerm _ ZeroTerm           = ZeroTerm
+antiDTerm n (Term []     coef) = Term [Var n Z] coef
+antiDTerm n (Term (v:vs) coef) = case compare n $ varDim v of
+  LT -> Term (Var n Z : v : vs) coef
+  EQ -> let e = varExp v in Term (Var n (S e) : vs) (divNumber coef (toNatural . S . S $ e))
+  GT -> let (Term vs' coef') = antiDTerm n (Term vs coef) in Term (v:vs') coef'
+
+-- is mkC needed or is antiD an increasing map?
+antiDC :: Fin n -> C n -> C n
+antiDC n = mkC . fmap (antiDTerm n) . cTerms
 
 gradient :: SNatI n => C n -> Vec n (C n)
 gradient c = fmap (partialD c) V.universe
