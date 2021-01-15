@@ -171,3 +171,17 @@ d = foldMap dCoterm . dCoterms
 d0 :: SNatI n => C n -> D (S Z) n
 d0 = d . liftToD . liftToCoterm
 
+antiDCoterm1 :: Coterm (S p) n -> Coterm p n
+antiDCoterm1 ZeroCoterm              = ZeroCoterm
+antiDCoterm1 (Coterm (cv ::: cvs) c) = mkCoterm cvs $ antiDC (covarDim cv) c
+
+antiD1 :: D (S p) n -> D p n
+antiD1 = mkD . fmap antiDCoterm1 . dCoterms
+
+antiDCoterm :: Coterm p n -> C n
+antiDCoterm ZeroCoterm     = mempty
+antiDCoterm (Coterm cvs c) = foldr (antiDC . covarDim) c $ cvs
+
+antiD :: D p n -> C n
+antiD = foldMap antiDCoterm . dCoterms
+
