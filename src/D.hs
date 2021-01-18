@@ -14,6 +14,7 @@ import Mat
 import C
 import V
 
+
 -- dx, dy etc
 newtype Covar n = Covar { covarDim :: Fin n } deriving (Eq, Ord)
 
@@ -25,6 +26,7 @@ instance SNatI n => Arbitrary (Covar n) where
 
 evalCovar :: V n -> Covar n -> C n
 evalCovar v cv = vComp v V.! covarDim cv
+
 
 -- ZeroCoterm corresponds to the case where C n is mempty
 data Coterm p n = ZeroCoterm | Coterm (Vec p (Covar n)) (C n) deriving (Eq, Ord)
@@ -108,6 +110,10 @@ cotermSum ZeroCoterm     ct            = ct
 cotermSum (Coterm cvs c) (Coterm _ c') =
   if c <> c' == mempty then ZeroCoterm else Coterm cvs $ c <> c'
 
+-- extract the coefficient from a coterm
+cotermC :: Coterm p n -> C n
+cotermC ZeroCoterm   = mempty
+cotermC (Coterm _ c) = c
 
 -- A differential form represented as a sum of nonzero coterm(s),
 -- ie. differential forms such as, f(x1,x2,x3)dx_1dx_2 + g(x1,x2,x3)dx_2dx_3
@@ -135,6 +141,9 @@ instance (SNatI p, SNatI n) => Arbitrary (D p n) where
 liftToD :: Coterm p n -> D p n
 liftToD ctp = mkD [ctp]
 
+unliftD :: D Z n -> C n
+unliftD = foldMap cotermC . dCoterms
+
 evalD :: Vec (S p) (V n) -> D (S p) n -> C n
 evalD vs = foldMap (evalCoterm vs) . dCoterms
 
@@ -143,8 +152,10 @@ mkD = sortedCotermsIntoD . L.sort
 
 sortedCotermsIntoD :: [Coterm p n] -> D p n
 sortedCotermsIntoD = Coterms
-                   . filter (ZeroCoterm /=) -- Remove 0s from the sum
-                   . combineSimilar cotermVarsEq cotermSum -- adx_1dx_2 + bdx_1dx_2 = (a+b)dx_1dx_2 etc.
+                   -- Remove 0s from the sum
+                   . filter (ZeroCoterm /=)
+                   -- adx_1dx_2 + bdx_1dx_2 = (a+b)dx_1dx_2 etc.
+                   . combineSimilar cotermVarsEq cotermSum
 
 -- cotermMappend is the product (2dx_3 * 3dx_1 = -6dx_1dx_3)
 extProdCoterm :: D p2 n -> Coterm p1 n -> D (Plus p1 p2) n
@@ -171,17 +182,50 @@ d = foldMap dCoterm . dCoterms
 d0 :: SNatI n => C n -> D (S Z) n
 d0 = d . liftToD . liftToCoterm
 
-antiDCoterm1 :: Coterm (S p) n -> Coterm p n
-antiDCoterm1 ZeroCoterm              = ZeroCoterm
-antiDCoterm1 (Coterm (cv ::: cvs) c) = mkCoterm cvs $ antiDC (covarDim cv) c
+-- integrate C w.r.t. cv, however the integration limits
+-- have to be specified for each dimension as Covar n
+-- does not specify whether it is dx_0, dx_1 etc...
+iC :: Vec n Number -> Vec n Number -> Covar n -> C n -> C n
+iC froms tos cv c =
+  partialEvalCAt tos dim ad <> ginv (partialEvalCAt froms dim ad) where
+    dim = covarDim cv
+    ad = antiD dim c
 
-antiD1 :: D (S p) n -> D p n
-antiD1 = mkD . fmap antiDCoterm1 . dCoterms
+iCoterm :: Vec n Number -> Vec n Number -> C n -> Coterm p n -> C n
+iCoterm _     _   _  ZeroCoterm     = mempty
+iCoterm froms tos c' (Coterm cvs c) = sappend c $ foldr (iC froms tos) c' cvs
 
-antiDCoterm :: Coterm p n -> C n
-antiDCoterm ZeroCoterm     = mempty
-antiDCoterm (Coterm cvs c) = foldr (antiDC . covarDim) c $ cvs
+i :: D p n -> C n -> Vec n Number -> Vec n Number -> C n
+i d c froms tos = foldMap (iCoterm froms tos c) . dCoterms $ d
 
-antiD :: D p n -> C n
-antiD = foldMap antiDCoterm . dCoterms
+i' :: D p n -> C n -> Vec n Number -> Vec n Number -> Number
+i' d c froms tos = evalC froms $ i d c froms tos
+
+data E p n = ZeroE | E (C n) (Vec p (Fin n)) deriving (Eq, Ord)
+
+liftToE :: C n -> E Z n
+liftToE c = E c VNil
+
+evalE :: E p n -> Vec p Number -> Vec p Number -> C n
+evalE ZeroE           _       _        = mempty
+evalE (E c VNil)      _       _        = c
+evalE (E c (d:::ds)) (f:::fs) (t:::ts) =
+  let c' = partialEvalC t d c <> ginv (partialEvalC f d c)
+  in evalE (E c' ds) fs ts
+
+emultC :: C n -> E p n -> E p n
+emultC _  ZeroE      = ZeroE
+emultC c' (E c lims) = E (sappend c c') lims
+
+iCFin :: Vec p (Fin n) -> C n -> E p n
+iCFin VNil     c = E c VNil
+iCFin (d:::ds) c = let (E c' ds') = iCFin ds c in E (antiD d c') $ d:::ds'
+
+iEFin :: Vec p (Fin n) -> E p1 n -> E (Plus p1 p) n
+iEFin _   ZeroE      = ZeroE
+iEFin cvs (E c lims) = let (E c' lims') = iCFin cvs c in E c' $ lims V.++ lims'
+
+iE :: Coterm p n -> E p1 n -> E (Plus p1 p) n
+iE ZeroCoterm     = const ZeroE
+iE (Coterm cvs c) = emultC c . iEFin (fmap covarDim cvs)
 

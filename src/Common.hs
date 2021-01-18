@@ -61,6 +61,9 @@ instance Semirng Number where
 instance Semiring Number where
   sempty = 1
 
+divNumber :: Integral a => Number -> a -> Number
+divNumber n a = sappend n $ Number (1 % toInteger a)
+
 dotProduct :: Vec n Number -> Vec n Number -> Number
 dotProduct vn1 vn2 = foldMap id $ V.zipWith sappend vn1 vn2
 
