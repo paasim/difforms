@@ -83,9 +83,9 @@ evalTerm vn (Term vs d) = foldr (*) d $ fmap (evalVarAt vn) vs
 -- simply adds it to terms
 evalSpecificVar :: Number -> Fin n -> Var n -> Term n -> Term n
 evalSpecificVar _  _   _ ZeroTerm    = ZeroTerm
-evalSpecificVar vn dim v (Term vs d) = case varDim v == dim of
-  True  -> Term vs $ d * evalVar vn v
-  False -> Term (v:vs) d
+evalSpecificVar vn dim v (Term vs d) = if varDim v == dim
+  then Term vs $ d * evalVar vn v
+  else Term (v:vs) d
 
 -- evaluate variables where the dimension is Fin n
 -- at the point speficied in the Vec

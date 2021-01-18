@@ -92,4 +92,3 @@ jacobian = fmap gradient . phiComp
 jacobianToAt :: SNatI n => Vec m (Vec n (C n)) -> Vec n Number -> Mat n m Number
 jacobianToAt j r = transpose . Mat . fmap (fmap (evalC r)) $ j
 
-
