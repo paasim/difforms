@@ -62,7 +62,6 @@ pullbackCovar :: SNatI n => Phi n m -> Covar m -> D (S Z) n
 pullbackCovar phi cv = d0 $ phiComp phi V.! covarDim cv
 
 pullbackCoterm :: SNatI n => Phi n m -> Coterm p m -> D p n
-pullbackCoterm _ ZeroCoterm        = liftToD ZeroCoterm
 pullbackCoterm phi (Coterm VNil c) = liftToD . liftToCoterm . pullbackC phi $ c
 pullbackCoterm phi (Coterm (cv:::cvs) c) =
   exteriorProduct (pullbackCovar phi cv) . pullbackCoterm phi $ Coterm cvs c

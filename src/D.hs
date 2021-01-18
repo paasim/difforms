@@ -28,11 +28,10 @@ evalCovar :: V n -> Covar n -> C n
 evalCovar v cv = vComp v V.! covarDim cv
 
 
--- ZeroCoterm corresponds to the case where C n is mempty
-data Coterm p n = ZeroCoterm | Coterm (Vec p (Covar n)) (C n) deriving (Eq, Ord)
+data Coterm p n = Coterm { cotermVars :: (Vec p (Covar n))
+                         , cotermC :: (C n) } deriving (Eq, Ord)
 
 instance Show (Coterm p n) where
-  show ZeroCoterm = show (mempty :: C n)
   show (Coterm VNil c) =
     "(" <> show c <> ")"
   show (Coterm cvs c) =
@@ -40,8 +39,6 @@ instance Show (Coterm p n) where
 
 -- "semigroupoid" multiplication
 cotermMappend :: Coterm p1 n -> Coterm p2 n -> Coterm (Plus p1 p2) n
-cotermMappend ZeroCoterm _ = ZeroCoterm
-cotermMappend _ ZeroCoterm = ZeroCoterm
 cotermMappend (Coterm cvs c) (Coterm cvs' c') = mkCoterm (cvs V.++ cvs') $ sappend c c'
 
 -- multiplicative identity
@@ -50,7 +47,6 @@ cotermMempty = liftToCoterm sempty
 
 -- module multiplication (though group missing)
 ctpMult :: C n -> Coterm p n -> Coterm p n
-ctpMult _  ZeroCoterm     = ZeroCoterm
 ctpMult c' (Coterm cvs c) = mkCoterm cvs $ sappend c' c
 
 instance (SNatI p, SNatI n) => Arbitrary (Coterm p n) where
@@ -62,18 +58,16 @@ liftToCoterm = Coterm VNil
 
 mkCoterm :: Vec p (Covar n) -> C n -> Coterm p n
 mkCoterm cvs c = let (isEven, cvs') = bubbleVec cvs
-  in case (c == mempty || not (uniqSortedVec cvs'), isEven) of
-    (True,  _) -> ZeroCoterm --coef is zero or two coterms of same dimension
+  in case (not $ uniqSortedVec cvs', isEven) of
+    (True,  _) -> Coterm cvs' mempty --coef is zero or two coterms of same dimension
     (_,  True) -> Coterm cvs' c
     (_, False) -> negateCoterm $ Coterm cvs' c -- negate because of anticommutativity
 
 evalCoterm :: Vec (S p) (V n) -> Coterm (S p) n -> C n
-evalCoterm _  ZeroCoterm     = mempty
 evalCoterm vs (Coterm cvs c) =
   sappend c . det . Mat . fmap (\v -> fmap (evalCovar v) cvs) $ vs
 
 negateCoterm :: Coterm p n -> Coterm p n
-negateCoterm ZeroCoterm     = ZeroCoterm
 negateCoterm (Coterm cvs c) = Coterm cvs $ ginv c
 
 -- keeps track of the permutation (even or odd)
@@ -100,20 +94,11 @@ uniqSortedVec (a1 ::: a2 ::: rest) = a1 /= a2 && uniqSortedVec (a2 ::: rest)
 -- for constructing valid instances of D
 cotermVarsEq :: Coterm p n -> Coterm p n -> Bool
 cotermVarsEq ct1 ct2 = getCvs ct1 == getCvs ct2 where
-  getCvs ZeroCoterm     = Nothing
   getCvs (Coterm cvs _) = Just cvs
 
 -- Sum of two terms assuming the vars are equal
 cotermSum :: Coterm p n -> Coterm p n -> Coterm p n
-cotermSum ct             ZeroCoterm    = ct
-cotermSum ZeroCoterm     ct            = ct
-cotermSum (Coterm cvs c) (Coterm _ c') =
-  if c <> c' == mempty then ZeroCoterm else Coterm cvs $ c <> c'
-
--- extract the coefficient from a coterm
-cotermC :: Coterm p n -> C n
-cotermC ZeroCoterm   = mempty
-cotermC (Coterm _ c) = c
+cotermSum (Coterm cvs c) (Coterm _ c') = Coterm cvs $ c <> c'
 
 -- A differential form represented as a sum of nonzero coterm(s),
 -- ie. differential forms such as, f(x1,x2,x3)dx_1dx_2 + g(x1,x2,x3)dx_2dx_3
@@ -153,7 +138,7 @@ mkD = sortedCotermsIntoD . L.sort
 sortedCotermsIntoD :: [Coterm p n] -> D p n
 sortedCotermsIntoD = Coterms
                    -- Remove 0s from the sum
-                   . filter (ZeroCoterm /=)
+                   . filter ((/=) mempty . cotermC)
                    -- adx_1dx_2 + bdx_1dx_2 = (a+b)dx_1dx_2 etc.
                    . combineSimilar cotermVarsEq cotermSum
 
@@ -167,7 +152,6 @@ exteriorProduct dpn1 dpn2 = foldMap (extProdCoterm dpn2) . dCoterms $ dpn1
 
 -- partial derivative with respect to a given dimension
 dCotermBy :: Coterm p n -> Covar n -> Coterm (S p) n
-dCotermBy ZeroCoterm     _  = ZeroCoterm
 dCotermBy (Coterm cvs c) cv = mkCoterm (cv ::: cvs) (partialD c . covarDim $ cv)
 
 -- fold over all the dimensions
@@ -192,7 +176,6 @@ iC froms tos cv c =
     ad = antiD dim c
 
 iCoterm :: Vec n Number -> Vec n Number -> C n -> Coterm p n -> C n
-iCoterm _     _   _  ZeroCoterm     = mempty
 iCoterm froms tos c' (Coterm cvs c) = sappend c $ foldr (iC froms tos) c' cvs
 
 i :: D p n -> C n -> Vec n Number -> Vec n Number -> C n
@@ -201,20 +184,19 @@ i d c froms tos = foldMap (iCoterm froms tos c) . dCoterms $ d
 i' :: D p n -> C n -> Vec n Number -> Vec n Number -> Number
 i' d c froms tos = evalC froms $ i d c froms tos
 
-data E p n = ZeroE | E (C n) (Vec p (Fin n)) deriving (Eq, Ord)
+
+data E p n = E (C n) (Vec p (Fin n)) deriving (Eq, Ord)
 
 liftToE :: C n -> E Z n
 liftToE c = E c VNil
 
 evalE :: E p n -> Vec p Number -> Vec p Number -> C n
-evalE ZeroE           _       _        = mempty
 evalE (E c VNil)      _       _        = c
 evalE (E c (d:::ds)) (f:::fs) (t:::ts) =
   let c' = partialEvalC t d c <> ginv (partialEvalC f d c)
   in evalE (E c' ds) fs ts
 
 emultC :: C n -> E p n -> E p n
-emultC _  ZeroE      = ZeroE
 emultC c' (E c lims) = E (sappend c c') lims
 
 iCFin :: Vec p (Fin n) -> C n -> E p n
@@ -222,10 +204,8 @@ iCFin VNil     c = E c VNil
 iCFin (d:::ds) c = let (E c' ds') = iCFin ds c in E (antiD d c') $ d:::ds'
 
 iEFin :: Vec p (Fin n) -> E p1 n -> E (Plus p1 p) n
-iEFin _   ZeroE      = ZeroE
 iEFin cvs (E c lims) = let (E c' lims') = iCFin cvs c in E c' $ lims V.++ lims'
 
 iE :: Coterm p n -> E p1 n -> E (Plus p1 p) n
-iE ZeroCoterm     = const ZeroE
 iE (Coterm cvs c) = emultC c . iEFin (fmap covarDim cvs)
 
