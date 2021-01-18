@@ -39,7 +39,8 @@ instance Show (Coterm p n) where
 
 -- "semigroupoid" multiplication
 cotermMappend :: Coterm p1 n -> Coterm p2 n -> Coterm (Plus p1 p2) n
-cotermMappend (Coterm cvs c) (Coterm cvs' c') = mkCoterm (cvs V.++ cvs') $ sappend c c'
+cotermMappend ct1 ct2 = mkCoterm (cotermVars ct1 V.++ cotermVars ct2)
+                               $ sappend (cotermC ct1) (cotermC ct2)
 
 -- multiplicative identity
 cotermMempty :: Coterm Z n
@@ -47,7 +48,7 @@ cotermMempty = liftToCoterm sempty
 
 -- module multiplication (though group missing)
 ctpMult :: C n -> Coterm p n -> Coterm p n
-ctpMult c' (Coterm cvs c) = mkCoterm cvs $ sappend c' c
+ctpMult c ct = mkCoterm (cotermVars ct) $ sappend c (cotermC ct)
 
 instance (SNatI p, SNatI n) => Arbitrary (Coterm p n) where
   -- in order to prevent oveflow when evaluating terms
@@ -64,11 +65,11 @@ mkCoterm cvs c = let (isEven, cvs') = bubbleVec cvs
     (_, False) -> negateCoterm $ Coterm cvs' c -- negate because of anticommutativity
 
 evalCoterm :: Vec (S p) (V n) -> Coterm (S p) n -> C n
-evalCoterm vs (Coterm cvs c) =
-  sappend c . det . Mat . fmap (\v -> fmap (evalCovar v) cvs) $ vs
+evalCoterm vs ct =
+  sappend (cotermC ct) . det . Mat . fmap (\v -> fmap (evalCovar v) (cotermVars ct)) $ vs
 
 negateCoterm :: Coterm p n -> Coterm p n
-negateCoterm (Coterm cvs c) = Coterm cvs $ ginv c
+negateCoterm ct = Coterm (cotermVars ct) $ ginv (cotermC ct)
 
 -- keeps track of the permutation (even or odd)
 insertVec :: Ord a => a -> Bool -> Vec n a -> (Bool, Vec (S n) a)
@@ -93,12 +94,11 @@ uniqSortedVec (a1 ::: a2 ::: rest) = a1 /= a2 && uniqSortedVec (a2 ::: rest)
 
 -- for constructing valid instances of D
 cotermVarsEq :: Coterm p n -> Coterm p n -> Bool
-cotermVarsEq ct1 ct2 = getCvs ct1 == getCvs ct2 where
-  getCvs (Coterm cvs _) = Just cvs
+cotermVarsEq ct1 ct2 = cotermVars ct1 == cotermVars ct2
 
 -- Sum of two terms assuming the vars are equal
 cotermSum :: Coterm p n -> Coterm p n -> Coterm p n
-cotermSum (Coterm cvs c) (Coterm _ c') = Coterm cvs $ c <> c'
+cotermSum ct1 ct2 = Coterm (cotermVars ct1) $ cotermC ct1 <> cotermC ct2
 
 -- A differential form represented as a sum of nonzero coterm(s),
 -- ie. differential forms such as, f(x1,x2,x3)dx_1dx_2 + g(x1,x2,x3)dx_2dx_3
@@ -152,7 +152,7 @@ exteriorProduct dpn1 dpn2 = foldMap (extProdCoterm dpn2) . dCoterms $ dpn1
 
 -- partial derivative with respect to a given dimension
 dCotermBy :: Coterm p n -> Covar n -> Coterm (S p) n
-dCotermBy (Coterm cvs c) cv = mkCoterm (cv ::: cvs) (partialD c . covarDim $ cv)
+dCotermBy ct cv = mkCoterm (cv ::: cotermVars ct) (partialD (cotermC ct) . covarDim $ cv)
 
 -- fold over all the dimensions
 dCoterm :: SNatI n => Coterm p n -> D (S p) n
@@ -176,7 +176,7 @@ iC froms tos cv c =
     ad = antiD dim c
 
 iCoterm :: Vec n Number -> Vec n Number -> C n -> Coterm p n -> C n
-iCoterm froms tos c' (Coterm cvs c) = sappend c $ foldr (iC froms tos) c' cvs
+iCoterm froms tos c ct = sappend (cotermC ct) $ foldr (iC froms tos) c (cotermVars ct)
 
 i :: D p n -> C n -> Vec n Number -> Vec n Number -> C n
 i d c froms tos = foldMap (iCoterm froms tos c) . dCoterms $ d
@@ -207,5 +207,5 @@ iEFin :: Vec p (Fin n) -> E p1 n -> E (Plus p1 p) n
 iEFin cvs (E c lims) = let (E c' lims') = iCFin cvs c in E c' $ lims V.++ lims'
 
 iE :: Coterm p n -> E p1 n -> E (Plus p1 p) n
-iE (Coterm cvs c) = emultC c . iEFin (fmap covarDim cvs)
+iE ct = emultC (cotermC ct) . iEFin (fmap covarDim . cotermVars $ ct)
 
