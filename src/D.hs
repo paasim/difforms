@@ -28,8 +28,8 @@ evalCovar :: V n -> Covar n -> C n
 evalCovar v cv = vComp v V.! covarDim cv
 
 
-data Coterm p n = Coterm { cotermVars :: (Vec p (Covar n))
-                         , cotermC :: (C n) } deriving (Eq, Ord)
+data Coterm p n = Coterm { cotermVars :: Vec p (Covar n)
+                         , cotermC :: C n } deriving (Eq, Ord)
 
 instance Show (Coterm p n) where
   show (Coterm VNil c) =
@@ -185,27 +185,36 @@ i' :: D p n -> C n -> Vec n Number -> Vec n Number -> Number
 i' d c froms tos = evalC froms $ i d c froms tos
 
 
-data E p n = E (C n) (Vec p (Fin n)) deriving (Eq, Ord)
+data E p n = E { eC :: C n, eDims :: Vec p (Fin n) } deriving (Eq, Ord)
+
+getBoundaries :: Vec n Number -> Vec n Number -> E p n -> Vec p (Number, Number)
+getBoundaries from to = fmap (\dim -> (from V.! dim, to V.! dim)) . eDims
 
 liftToE :: C n -> E Z n
 liftToE c = E c VNil
 
-evalE :: E p n -> Vec p Number -> Vec p Number -> C n
-evalE (E c VNil)      _       _        = c
-evalE (E c (d:::ds)) (f:::fs) (t:::ts) =
+evalE :: E p n -> Vec p (Number, Number) -> C n
+evalE (E c VNil)     _             = c
+evalE (E c (d:::ds)) ((f,t):::fts) =
   let c' = partialEvalC t d c <> ginv (partialEvalC f d c)
-  in evalE (E c' ds) fs ts
+  in evalE (E c' ds) fts
 
 emultC :: C n -> E p n -> E p n
-emultC c' (E c lims) = E (sappend c c') lims
+emultC c e = E (sappend c $ eC e) $ eDims e
 
 iCFin :: Vec p (Fin n) -> C n -> E p n
 iCFin VNil     c = E c VNil
 iCFin (d:::ds) c = let (E c' ds') = iCFin ds c in E (antiD d c') $ d:::ds'
 
 iEFin :: Vec p (Fin n) -> E p1 n -> E (Plus p1 p) n
-iEFin cvs (E c lims) = let (E c' lims') = iCFin cvs c in E c' $ lims V.++ lims'
+iEFin cvs e = let e' = iCFin cvs (eC e) in E (eC e') $ eDims e V.++ eDims e'
 
-iE :: Coterm p n -> E p1 n -> E (Plus p1 p) n
-iE ct = emultC (cotermC ct) . iEFin (fmap covarDim . cotermVars $ ct)
+iE :: E p1 n -> Coterm p n -> E (Plus p1 p) n
+iE e ct = emultC (cotermC ct) . iEFin (fmap covarDim . cotermVars $ ct) $ e
+
+iE' :: D p n -> C n -> [E p n]
+iE' d c = let e0 = liftToE c in fmap (iE e0) . dCoterms $ d
+
+i'' :: D p n -> C n -> Vec n Number -> Vec n Number -> Number
+i'' d c froms tos = evalC froms . foldMap (\e -> evalE e (getBoundaries froms tos e)) $ iE' d c
 
