@@ -31,8 +31,8 @@ emultC c e = E (sappend c $ eC e) $ eDims e
 eAddDims :: Vec p1 (Fin n) -> E p2 n -> E (Plus p1 p2) n
 eAddDims dims e = E (eC e) $ dims V.++ eDims e
 
-evalE :: E p n -> Vec p (Number, Number) -> C n
-evalE e = foldr (uncurry cDiff) (eC e) . V.zipWith (,) (eDims e)
+evalE :: Vec p (Number, Number) -> E p n -> C n
+evalE bs e = foldr (uncurry cDiff) (eC e) . V.zipWith (,) (eDims e) $ bs
 
 cDiff :: Fin n -> (Number, Number) -> C n -> C n
 cDiff dim (f, t) c = partialEvalC t dim c <> ginv (partialEvalC f dim c)
@@ -50,5 +50,5 @@ i' :: C n -> D p n -> [E p n]
 i' c = fmap (iE (liftToE c)) . dCoterms
 
 i :: Vec n Number -> Vec n Number -> C n -> D p n -> Number
-i froms tos c = evalC froms . foldMap (\e -> evalE e (getBoundaries froms tos e)) . i' c
+i froms tos c = evalC froms . foldMap (\e -> evalE (getBoundaries froms tos e) e) . i' c
 

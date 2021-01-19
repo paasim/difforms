@@ -5,6 +5,7 @@ import TestC
 import TestV
 import TestD
 import TestPhi
+import TestI
 
 main :: IO ()
 main = do
@@ -13,4 +14,5 @@ main = do
   testV
   testD
   testPhi
+  testI
 
