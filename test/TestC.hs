@@ -1,5 +1,6 @@
 module TestC ( testC ) where
 
+import Data.Fin ( Fin(..) )
 import qualified Data.Type.Nat as N
 import Data.Vec.Lazy ( Vec(..) )
 import Test.Hspec
@@ -84,6 +85,16 @@ amultDistributes2 i1 i2 c = let d1 = fromIntegral i1
                                 d2 = fromIntegral i2
   in amult (d1 + d2) c == amult d1 c <> amult d2 c
 
+type PartialEvalIdenpotent n = Number -> Fin n -> OneC n
+partialEvalIdenpotent :: PartialEvalIdenpotent n
+partialEvalIdenpotent num dim c =
+  partialEvalC num dim c == (partialEvalC num dim . partialEvalC num dim) c
+
+type PartialDInverseOfAntiD n = Fin n -> OneC n
+partialDInverseOfAntiD :: PartialDInverseOfAntiD n
+partialDInverseOfAntiD dim c = partialD (antiD dim c) dim == c
+
+
 testC :: IO ()
 testC = hspec $ do
   describe "Tests for C, Term:" $ do
@@ -127,4 +138,9 @@ testC = hspec $ do
       (amultDistributes1 :: Int -> TwoC N.Nat3)
     prop "algebra multiplication distributive in terms"
       (amultDistributes2 :: Int -> Int -> OneC N.Nat3)
+    prop "Partially evaluating at a variable is idenpotent"
+      (partialEvalIdenpotent  :: PartialEvalIdenpotent N.Nat3)
+    prop "partialD is the inverse of antiD"
+      (partialDInverseOfAntiD  :: PartialDInverseOfAntiD N.Nat3)
+
 

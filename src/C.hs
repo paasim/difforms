@@ -1,7 +1,9 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
 module C where
 
 import Data.Fin ( Fin(..) )
+import qualified Data.Fin as F
 import Data.Type.Nat ( Nat(..), SNatI, toNatural )
 import Data.Vec.Lazy ( Vec(..) )
 import qualified Data.Vec.Lazy as V
@@ -21,8 +23,11 @@ instance Show (Var n) where
 instance SNatI n => Arbitrary (Var n) where
   arbitrary = Var <$> elements (V.toList V.universe) <*> resize 4 arbitrary
 
-evalVar :: Vec n Number -> Var n -> Number
-evalVar vn (Var ind e) = (vn V.! ind) ^ toNatural (S e)
+evalVar :: Number -> Var n -> Number
+evalVar n v = n ^ toNatural (S . varExp $ v)
+
+evalVarAt :: Vec n Number -> Var n -> Number
+evalVarAt vn v = evalVar (vn V.! varDim v) v
 
 -- for constructing valid instances of Term
 varDimEq :: Var n -> Var n -> Bool
@@ -72,7 +77,21 @@ mkTerm vs d = Term (combineSimilar varDimEq varProd . L.sort $ vs) d
 
 evalTerm :: Vec n Number -> Term n -> Number
 evalTerm _ ZeroTerm    = 0
-evalTerm vn (Term vs d) = foldr (*) d $ fmap (evalVar vn) vs
+evalTerm vn (Term vs d) = foldr (*) d $ fmap (evalVarAt vn) vs
+
+-- Evaluates Var if it matches to Fin n, otherwise
+-- simply adds it to terms
+evalSpecificVar :: Number -> Fin n -> Var n -> Term n -> Term n
+evalSpecificVar _  _   _ ZeroTerm    = ZeroTerm
+evalSpecificVar vn dim v (Term vs d) = if varDim v == dim
+  then Term vs $ d * evalVar vn v
+  else Term (v:vs) d
+
+-- evaluate variables where the dimension is Fin n
+-- at the point speficied in the Vec
+partialEvalTerm :: Number -> Fin n -> Term n -> Term n
+partialEvalTerm _  _   ZeroTerm    = ZeroTerm
+partialEvalTerm n dim (Term vs d) = foldr (evalSpecificVar n dim) (Term [] d) vs
 
 -- needed to make C a group
 negateTerm :: Term n -> Term n
@@ -133,6 +152,14 @@ liftToC t1 = mkC [t1]
 evalC :: Vec n Number -> C n -> Number
 evalC vn = sum . fmap (evalTerm vn) . cTerms
 
+-- evaluate terms in C where the dimension is Fin n
+-- at the point specified in Vec
+partialEvalCAt :: Vec n Number -> Fin n -> C n -> C n
+partialEvalCAt vn dim = partialEvalC (vn V.! dim) dim
+
+partialEvalC :: Number -> Fin n -> C n -> C n
+partialEvalC n dim = mkC . fmap (partialEvalTerm n dim) . cTerms
+
 -- A 'smart constructor' which ensures that the term(s)
 -- are in correct order, terms with common variable-part are
 -- summed together and and terms with coefficient 0 are filtered out
@@ -141,8 +168,10 @@ mkC = sortedTermsIntoC . L.sort
 
 sortedTermsIntoC :: [Term n] -> C n
 sortedTermsIntoC = Terms
-                 . filter (ZeroTerm /=) -- Remove 0s from the sum
-                 . combineSimilar termVarsEq termSum -- ax_1x_2 + bx_1x_2 = (a+b)x_1x_2 etc.
+                 -- Remove 0s from the sum
+                 . filter (ZeroTerm /=)
+                 -- ax_1x_2 + bx_1x_2 = (a+b)x_1x_2 etc.
+                 . combineSimilar termVarsEq termSum
 
 -- d x^3 = 3x^2 etc.
 partialDVar :: Fin n -> Var n -> Term n
@@ -164,6 +193,20 @@ partialDTerm n (Term (v : vs) d) = case partialDVar n v of
 partialD :: C n -> Fin n -> C n
 partialD cn n = foldMap (liftToC . partialDTerm n) . cTerms $ cn
 
+-- This could probably be simplified
+antiDTerm :: Fin n -> Term n -> Term n
+antiDTerm _ ZeroTerm           = ZeroTerm
+antiDTerm n (Term []     coef) = Term [Var n Z] coef
+antiDTerm n (Term (v:vs) coef) = case compare n $ varDim v of
+  LT -> Term (Var n Z : v : vs) coef
+  EQ -> let e = varExp v in Term (Var n (S e) : vs) (divNumber coef (toNatural . S . S $ e))
+  GT -> let (Term vs' coef') = antiDTerm n (Term vs coef) in Term (v:vs') coef'
+
+-- this does not add the constant to the antiderivative...
+-- is mkC needed or is antiD an increasing map?
+antiD :: Fin n -> C n -> C n
+antiD n = mkC . fmap (antiDTerm n) . cTerms
+
 gradient :: SNatI n => C n -> Vec n (C n)
 gradient c = fmap (partialD c) V.universe
 
@@ -173,4 +216,21 @@ gradientAt vn = fmap (evalC vn) . gradient
 nthPower :: Nat -> C n -> C n
 nthPower Z     _ = sempty
 nthPower (S n) t = sappend t $ nthPower n t
+
+
+-- these are currently unused, but provide a way of
+-- recursively evaluating C n, by evaluating x_0
+-- and decreasing the dimension of all other variables
+evalSpecificVar' :: Number -> Var (S n) -> Term n -> Term n
+evalSpecificVar' _ _ ZeroTerm    = ZeroTerm
+evalSpecificVar' n v (Term vs d) = case F.isMin (varDim v) of
+  Nothing   -> Term vs $ d * (n ^ toNatural (S . varExp $ v))
+  (Just v') -> Term (Var v' (varExp v):vs) d
+
+partialEvalTerm' :: Number -> Term (S n) -> Term n
+partialEvalTerm' _ ZeroTerm    = ZeroTerm
+partialEvalTerm' n (Term vs d) = foldr (evalSpecificVar' n) (Term [] d) vs
+
+partialEvalC' :: Number -> C (S n) -> C n
+partialEvalC' n = mkC . fmap (partialEvalTerm' n) . cTerms
 
